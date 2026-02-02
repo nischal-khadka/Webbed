@@ -1,3 +1,95 @@
+## Table of Contents
+
+- [Domain Name System (DNS)](#domain-name-system-dns)
+  - [What is DNS](#what-is-dns)
+  - [Domain Hierarchy](#domain-hierarchy)
+    - [Top-Level Domains (gTLD, ccTLD)](#top-level-domains-gtld-cctld)
+    - [Second-Level Domains](#second-level-domains)
+    - [Subdomains](#subdomains)
+  - [DNS Record Types](#dns-record-types)
+    - [A Record](#a-record)
+    - [AAAA Record](#aaaa-record)
+    - [CNAME Record](#cname-record)
+    - [MX Record](#mx-record)
+    - [TXT Record](#txt-record)
+  - [DNS Resolution Process](#dns-resolution-process)
+    - [Local Cache](#local-cache)
+    - [Recursive DNS Server](#recursive-dns-server)
+    - [Root DNS Servers](#root-dns-servers)
+    - [TLD Servers](#tld-servers)
+    - [Authoritative DNS Servers](#authoritative-dns-servers)
+    - [DNS Caching and TTL](#dns-caching-and-ttl)
+
+- [HTTP in Detail](#http-in-detail)
+  - [Introduction to HTTP and HTTPS](#introduction-to-http-and-https)
+  - [Requests and Responses](#requests-and-responses)
+  - [URLs (Uniform Resource Locators)](#urls-uniform-resource-locators)
+    - [URL Components](#url-components)
+  - [Making an HTTP Request](#making-an-http-request)
+    - [Request Structure](#request-structure)
+    - [Response Structure](#response-structure)
+  - [HTTP Methods](#http-methods)
+    - [GET](#get)
+    - [POST](#post)
+    - [PUT](#put)
+    - [DELETE](#delete)
+  - [HTTP Status Codes](#http-status-codes)
+    - [Status Code Ranges](#status-code-ranges)
+    - [Common HTTP Status Codes](#common-http-status-codes)
+  - [HTTP Headers](#http-headers)
+    - [Common Request Headers](#common-request-headers)
+    - [Common Response Headers](#common-response-headers)
+  - [Cookies and Session Management](#cookies-and-session-management)
+
+- [OWASP API Security Top 10](#owasp-api-security-top-10)
+  - [Introduction to API Security](#introduction-to-api-security)
+  - [Broken Object Level Authorization (BOLA)](#broken-object-level-authorization-bola)
+  - [Broken User Authentication (BUA)](#broken-user-authentication-bua)
+  - [Excessive Data Exposure](#excessive-data-exposure)
+  - [Lack of Resources and Rate Limiting](#lack-of-resources-and-rate-limiting)
+  - [Broken Function Level Authorization](#broken-function-level-authorization)
+  - [Mass Assignment](#mass-assignment)
+  - [Security Misconfiguration](#security-misconfiguration)
+  - [Injection](#injection)
+  - [Improper Assets Management](#improper-assets-management)
+  - [Insufficient Logging and Monitoring](#insufficient-logging-and-monitoring)
+
+- [File Upload Vulnerabilities](#file-upload-vulnerabilities)
+  - [Introduction to Upload Vulnerabilities](#introduction-to-upload-vulnerabilities)
+  - [General Methodology](#general-methodology)
+  - [Overwriting Existing Files](#overwriting-existing-files)
+  - [Remote Code Execution (RCE)](#remote-code-execution-rce)
+  - [Upload Filtering Mechanisms](#upload-filtering-mechanisms)
+    - [Extension Validation](#extension-validation)
+    - [File Type Filtering](#file-type-filtering)
+      - [MIME Validation](#mime-validation)
+      - [Magic Number Validation](#magic-number-validation)
+    - [File Length Filtering](#file-length-filtering)
+    - [File Name Filtering](#file-name-filtering)
+    - [File Content Filtering](#file-content-filtering)
+  - [Bypassing Client-Side Filtering](#bypassing-client-side-filtering)
+  - [Bypassing Server-Side Filtering](#bypassing-server-side-filtering)
+    - [File Extension Bypass](#file-extension-bypass)
+    - [Magic Number Bypass](#magic-number-bypass)
+  - [Practical Notes and Enumeration Tips](#practical-notes-and-enumeration-tips)
+
+- [OWASP 2025: IAAA Failures](#owasp-2025-iaaa-failures)
+  - [Identity, Authentication, Authorization, Accountability (IAAA)](#identity-authentication-authorization-accountability-iaaa)
+  - [A01: Broken Access Control](#a01-broken-access-control)
+  - [A07: Authentication Failures](#a07-authentication-failures)
+  - [A09: Logging and Alerting Failures](#a09-logging-and-alerting-failures)
+
+- [OWASP Top 10 2025: Application Design Flaws](#owasp-top-10-2025-application-design-flaws)
+  - [AS02: Security Misconfigurations](#as02-security-misconfigurations)
+  - [AS03: Software Supply Chain Failures](#as03-software-supply-chain-failures)
+  - [AS04: Cryptographic Failures](#as04-cryptographic-failures)
+  - [AS06: Insecure Design](#as06-insecure-design)
+
+- [OWASP Top 10 2025: Insecure Data Handling](#owasp-top-10-2025-insecure-data-handling)
+  - [A04: Cryptographic Failures](#a04-cryptographic-failures)
+  - [A05: Injection](#a05-injection)
+  - [A08: Software or Data Integrity Failures](#a08-software-or-data-integrity-failures)
+
 #DNS (Domain Name System):
 
 - a simple way for communicating with services on the Internet. 
@@ -290,3 +382,180 @@
 ## Insufficient Logging and Monitoring:
 
 - It reflects a scenarios when an attacker performs a malicius act on the server, then when the hacker is tried to be pursued, then the development and security teams could not track the behaviour of the attacker. So, API logging and monitoring could help organizations find the details of an attacker like Ip address, endpoints accessed, inout data etc.
+
+# Upload Vulnerabilites
+
+- File uploads handled badly can open up severe vulnerabilities in the server. It can lead to anything minor problems or all the way up to RCE if an attacker can upload and execute a shell. This vulnerability could also open up for more exploitation room like XSS or CSRF.
+
+## General Methology:
+
+- First step is always enumeration.. GoBuster, BurpSuite, Wappalyser could be helpful for information gathering.
+
+- Understanding the basic handling of input data by the website can come in handy to see what we can and cannot upload. 
+
+## Overwriting Existing Files:
+
+- If no precautions have been taken for protecting exixting files on a web page, then we can overwrite the existing files on the server.
+
+## Remote Code Execution (RCE):
+
+- RCE could be obtained by uploading a web shell to a server vulnerable to upload vulnerabilties. This can be done by writing a program in the same language as the back-end of the website. We could also upload a malicious file to obtain reverse shell, but if there is file length restriction, or firewall rules prevent any network-based shell then web shells might be suitable. 
+
+- As usual enumeration, upload a simple web shell file and check the upload directory if the file has been uploaded successfully, then clicking on the file will give us our playground.
+
+- Uploading a reverse shell is also identical, only difference is we need to have a listener ready in our attacking machine. Pentest Monkey Shell reverse can be used.
+
+## Filtering:
+
+- Developers love to filter the allowed and disallowed file that can be uploaded in the server. Client-side filtering is done mainly on JS, which means the it is running in the users browser. This filtering occurs before the file is even upload to the server. 
+
+- Another filter used, is server-side where the filtering is done on the server-side language (php, C#, Node.js, Python, Ruby on Rails and many more). Filters applied on this side cannot be seen by an attacker and it is hard to bypass, but we can form a payload for confirmation of the filters that is in place.
+
+- Some of the filtering are:
+
+    - Extension Validation: They either blacklist extensions (having a list of extensions that are not allowed) or they whitelist extensions (having list of extensions that are allowed, and reject everything).
+    
+    - File Type Filtering: It is similar to extension validation, but goes in little more depth such as verifying if the contents of the file is acceptable to upload. Two types of this filtering are:
+        
+        1. MIME Validation: Multipurpose Internt Mail Extension types are used as an identifier for a file. It was originally used when transferring attachments over email,, but now also used when transferring files over HTTPS. It is attached in the header of the request and is identified by "Content-Type". It is only based on the extension of the file so it can be easily bypassed.
+        
+        2. Magic Number Validation: They are more accurate way of indetifying the contents of a file. Magic number is a string of bytes at the beginning of the file content that identifies the content. With a little determination this can also be bypassed.
+        
+    - File Length Filtering: Used to prevent huge files from being uploaded.
+    
+    - File Name Filtering: Files uploaded to a server should be unique other wise we could overwrite it.
+    
+    - File Content Filtering: These type of filtering may scan the full contents of an uploaded file to check if the file is not spoofing its extension, MIME type and Magic Number. 
+    
+## Bypassing Client-Side Filtering:
+
+- Some of the ways:
+
+    1. Turning off JavaScript in the browser. Will work if site does not require Javascript to provide basic functionality.
+    
+    2. Intercept and Modify the page request using Burpsuite. Can be used to strip out JS functions before it can run.
+    
+    3. Intercept and modify the file upload. Look for "content-type" header and modify it to our preferences.
+    
+    4. Send thhe file directly to the upload point. Curl helps.
+    
+## Bypassing Server-Side Filtering: File Exrensions
+
+- Test different methods. Enumerate the directories, find out server-side language used.
+
+- If the code is filtering .php and .phtm, we can use another extensions that are rarely used but still recognized by the server such as .php3, .php4, .php5, .php7, .php-s, .pht and .phar.
+
+- Check what extension can be uploaded. If jpg files are accepted then try uploading shell.jpg.php. Navigate to the uploads directory and get a shell.
+
+## Bypassing Server-Side Filtering: Magic Numbers
+
+- Effective against a php based webserver, but might fail on other types of webserver.
+
+- If gif files are accepted, modify the reverse-shell heading with the magic number of .gif extension.
+
+## Notes:
+
+- FIrst step look website behaviours, any exposed endpoints, enmuerate directories, browser extensions, languages, framework the application is built on. Headers such as "server" or "x-powered-by" can be uselful to gain insights abou the server. Look for vectors of attacks, like upload page. Source code, Client-side scripts to check if filtering is done on client-side. Then, attempt to upload differnt extensions to see how the server is responding to the upload. Use magic numbers, Burpsuite, nikto, enumeration is the key.
+
+
+# OWASP 2025: IAAA Failures
+
+- set of rules to be accomplished before carrying out the next move.
+
+- I (Identity), A (Authentication), A (Authorisation), A (Accountability).
+
+## A01: Broken Access Control
+
+- happens when the server cannot decide who can access what on every request. Something like IDOR (Insecure Direct Object Reference). 
+
+- Horizontal privelege escaltion or vertical.
+
+## A07: Authentication Failures:
+
+- happens when an application cannot verify or bind an users identity. Common issues include username enumeration, weak/guesabble password, logic flaws in the login/reg, insecure session or cookie handling. 
+
+## A09: Logging and Alerting Failures
+
+- inablity of recording and alerting security-releavnt events. Failures could look like missing authentication events, vague error logs, no alerting on brute-force of privilege changes. 
+
+# OWASP Top 10 2025: Application Design Flaws
+
+- flaws related to failure in architecture and system design.
+
+## AS02: Security Misconfigurations
+
+- When systems, servers, applications are deployed with unsafe defaults, incomplete settings, exposed services. Could give a foothold to an attacker.
+
+- Common Patterns:
+
+    - Default credentials or weak passwords left unchanged.
+    
+    - Unnecessary services or endpoints exposed.
+    
+    - Misconfigured cloud storage.
+    
+    - Unrestricted API access or missing authentication/authorisation
+    
+    - Verbose error messages exposing stack traces or system details.
+    
+    - Exposed Ai/ML endpoints wihtout proper access controls.
+    
+## AS03: Software Supply Chain Failures
+
+- happens when applications rely on components, libraries, services or models that are outdated or improper;y verified. One compromised dependency could compromise the entire system.
+
+- Common patterns:
+
+    - Using unverified or unmaintained libraires and dependencies
+    
+    - Automatically installing updates without verification.
+    
+    - Insecure build pipelines or CI/CD processes which allows tampering.
+    
+## AS04: Cryptographic Failures
+
+- happens when encryption is used incorrectly or not at all. Weak algorithms, hard-coded keys, poor key handling, unencrypted sensitive data. 
+
+- Common patterns:
+
+    - Using weak algorithms like MD5, SHA-1, ECB etc.
+    
+    - Self-signed or invalid TLS certs.
+    
+    - Use of AI/ML without proper secret handling for model parameters or sensitve outputs.
+    
+    - Poor key rotation.
+    
+## AS06: Insecure Design
+
+- flawed logic or architecture in the system from the start. 
+
+- Common Patterns:
+    
+    - Weak business logic controls, like recovery or approval flows
+    
+    - Flawed asumptions about user or model behaviour
+    
+    - AI components with unchecked authority or access.
+    
+    - Test or debug bypasses left in production
+    
+# OWASP Top 10 2025: Insecure Data Handling
+
+- Application behaviour and User input.
+
+## A04: Cryptographic Failures
+
+- happens when sensitive data is not protected enough due to lack of encryption, faulty implemtation, insufficient security measures. 
+
+## A05: Injection
+
+- occurs when an application takes user input and mishandles it. Passes user input directly into a system that can execute commands or queries like database, shell, templating engine or API.
+
+- SQL Injection, Command Injection, AI prompts, Server-Side Template Injection (SSTI).
+
+## A08: Software or Data Integrity Failures
+
+- happens when an application relies on code, updates or data it assumes are safe without verifying their authenticity, integrity or origin. Incldes trusting software updates wihtout verification, loading scripts or config files from untrustyed sources, failing to validate data which impacts application logic, or accepting data such as binaries, templates, JSPN files without confirming whether it has been altered.
+    
+    
