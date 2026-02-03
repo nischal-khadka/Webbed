@@ -90,7 +90,9 @@
   - [A05: Injection](#a05-injection)
   - [A08: Software or Data Integrity Failures](#a08-software-or-data-integrity-failures)
 
-#DNS (Domain Name System):
+  ***
+
+# DNS (Domain Name System):
 
 - a simple way for communicating with services on the Internet. 
 
