@@ -8,6 +8,11 @@
 - [Advanced SQL Injection](#advanced-sql-injection)
 - [NoSQL Injection](#nosql)
 - [XXE Injection](#xxe-injection)
+- [LDAP Injection](#ldap-injection)
+- [ORM Injection](#orm-injection)
+- [Insecure Deserialisation](#insecure-deserialisation)
+- [SSRF](#ssrf)
+- [File Inclusion and Path Traversal](#file-inclusion-and-path-traversal)
 
 *** ***
 
@@ -819,8 +824,316 @@
 
 - AllowListing input validation.
 
+# Server-Side Template Injection
+
+- SSTI is a vulnerabililty that occurs when user input is injected into a template engine of an application. This could lead to RCE, data exposure, privilege escaltion and DoS. These flaws are often found in web applications that use template engines to generate dynamic content. A template engine is used in web applications to combine static templates with dynamic data. SSTI manipulates the server side logic and potentially execute arbitrary code. 
+
+- Commonly used Template Engines:
+
+    - Jinja2: For Python
     
+    - Twig: For PHP
     
+    - Pug/Jade: For Node.js
+    
+- To determine if a web application has an SSTI flaw, first we need to find out the server-side language used to make the template engine. Then, after that we need to know the syntax of that particular engine and how it reacts to certain input. Then, putting the right payload with correct syntax could help in figuring out the presence of an SSTI. 
+
+- SSTImap tool can be used to automate the process of testing and explopiting vulnerabililtes in various template engines. Although, it is a good practice to manually check for flaws related to this. To detect it, we need to have some level of knowledge of server-side languages and the template engines used to properly test the payload relating to the engine being used and the vulnerability being present in there. 
+
+- To prevent from such injections, developers should follow secure coding that includes sandboxing, input validation, and secure configuration of template engines.
+
+# LDAP Injection
+
+- Ligthweight Directory Access Protocol (LDAP) is a widely used protocol for accessing and maintaining distributed directory information services over an IP network. It is often used for authentication and authorization purposes in web and internal applications. 
+
+- In LDAP, directory entries are structured as objects, each being loyal to a specific schema that defines rules and attributes applicable to the object. Services that uses LDAP are Microsoft Active Directory and OpenLDAP.
+
+- LDIF (LDAP Data Interchange Format) is used to represent LDAP entries. LDIF imports and exports directory contents and describes directory modifications such as adding, modifying, or deleting entries. 
+
+## Structure:
+
+- The structure of a LDAP directory follows a hierarchical structure like a file system's tree. This structure then comprises different entries representing a unique item, such as user, group, or resource. At the top of the LDAP tree is the TLD such as dc=example,dc=com. Then, underneath it, there exists subdomains or organizational units (OUs). 
+
+- Distinguished Names (DNs): serves as unique identifiers for each entry in the directory that specifies the path from the top of the LDAP tree to the entry. For example, cn=Nischal Khadka,ou=people,dc=example,dc=com.
+
+- Relative Distinguished Names (RDNs): represents individual levels within the directory hierarchy, like cn=Nischal Khadka, where cn stands for Common Name.
+
+- Attributes: defines the properties of directory entries like mail=nischal@google.com for an email address.
+
+## Search Queries:
+
+- LDAP search queries are crucial for interacting with the directories inside it. An LDAP search queries have serveral components that serves a specific function in the search operation:
+
+    1. Base DN: starting point of the directory tree (like root).
+    
+    2. Scope: defines how far the search should fo from the base DN. 
+    
+        - base (search the base DN only)
+        
+        - one (searches the immediate children of the base DN)
+        
+        - sub (search the base DN and all of its descendants)
+        
+    3. Filter: criteria entry to have specific search
+    
+    4. Attributes: defines which characteristic of the matching entries should be returned in the results.
+    
+- Basic syntax for and LDAP search query look like:
+
+    (base DN) (scope) (filter) (attributes)
+    
+- When LDAP services are publicly accessible, we can use tools such as 'ldapsearch', which is a part of the OpenLDAP suite to interact with the LDAP server. LDAP services are accessible on port 389 (for unencrypted connections) and 636 (for TLS/SSL connections).
+
+## Injection:
+
+- LDAP injection exploits the way web application construct LDAP queries. It is similar to SQL injection, where SQL statements are injected into queries to manipulate database operations, but in LDAP injection the malicious code targets the LDAP queries.
+
+- We can exploit a vulnerable LDAP query to inject malicious LDAP filters such as "*". AS, "*" always returns to true in the LDAP directory which is a kind of a wildcard.
+
+## Authentication Bypass Techniques:
+
+- Tautology-Based Injection:
+
+    - It invloves inserting conditions into an LDAP query that are inherently true despite the intended logic of the application. This injection can be effective if the username and password are inserted directly from user input (unsanitised). We can craft a query that could fool the LDAP authentication that we are true and let us in.  
+    
+## Blind LDAP Injection:
+
+- As the name suggests, we are blind to the results of our payload to this type of injection. 
+
+- We could make use of Boolean-based blind LDAP injection. For example: 'a*)(|(&' for username and 'pwd)' for password. What this does is '*' matches any entry with the attribute. Then, '(|(&' says any two conditions enclosed needs to be true for the filter to pass. In LDAP, and empty AND (&) condition is always considered true, so as the password is not true, the first condition sets to true and the format defined will successfully have an entry in the LDAP query resulting in the successfull authentication in my opinion. The character 'a' is the first name of the user, so we can enumerate the whole username of an user till we get it looking at the errors the application throws. 
+
+# ORM Injection
+
+- ORM (Object Relational Mapping) is a programming technique that facilitates data conversion between incompatible systems using object-oriented programming languages. It basically lets developers to interact with a database using the programming language's native syntax, making data manipulation more intuitive and reducing the need of extensive SQL queries. It serves as a bridge between the object-oriented programming model and the relational database model. Here, the developers work with objects rather than tables and rows.
+
+- Commonly used ORM frameworks:
+
+    - Doctrine (PHP)
+    
+    - Hibernate (JAVA)
+    
+    - SQLAlchemy (Python)
+    
+    - Entity Framework (C#)
+    
+    - Active Record (Ruby on Rails)
+    
+## How ORM Works?
+
+- Simply stating, ORM is a technique which simplifies data interaction in an application by mapping objects in code to database tables. Commonly, the process involves defining classes that represents tables in a database and their relationships. And, each class property relates to a column in the table while each class instance represents a row. 
+
+- ORM frameworks streamline common database operations like CRUD operations.
+
+- ORM injection is similar to SQL injection as they both target to exploit vulnerabililtes in database interactions, however they target different levels of the stack:
+
+    - SQL Injection: It targets raw SQL queries which allows attackers to manipulate the SQL statements directly. It can be achieved by injecting malicious input into query strings. 
+    
+    - ORM Injection: It targets the ORM framework, exploiting how it constructs queries from object operation. We can manipulate the ORM's methods and properties to influence the resulting SQL queries.
+    
+## Identifying ORM Injection:
+
+- Manual Code Review: A manual code inspection of the source code could reveal some raw query methods that might be vulnerable. The main focus is to look for concatenated strings or unescaped inputs in ORM methods that could trigger the injection.
+
+- Automated Scanning: Use of security scanning tools could also help in detecting ORM injection vulnerabilities. 
+
+- Input Validation Testing: Performing manual testing by injecting payloads into application inputs to see how they react and if they affect the ORM query can be useful. For example, injecting SQL control characters or keywords to determine the execution of the query.
+
+- Error-based Testing: Just play with the input field and get to know the behaviour of how it throws the errors.
+
+# Insecure Deserialisation
+
+- This exploit occurs when an application trusts serialised data enough to use it without validating its authenticity. So, an attacker can manipulate serialised objects to achive RCE, escalate privileges, or launch denial-of-service attacks.
+
+## Serialisation:
+
+- Serialisation is the process of transforming an object's state into a human-readable or binary format that can be stored or transmitted and reconstructed when required. This concept of programming is very important in applications where data must be transferred between different parts of the system or across a network, such as web-based applications. Every OOP-based languages has its own way of serialising and deserialising object data.
+
+## Deserialisation:
+
+- It is simply a process where the data that have been serialised before transmitting over the network or system is converted or formatted back into an object. It is important for retrieving data from files, databases, or across networks, restoring it to its original state for use. Insecure deserialisation leads to security vulnerabilities where an attacker might alter the serialised objects to execute unauthorised actions or steal data.\
+
+## Serialisation Formats:
+
+- Based on the programming language used, keywords and functions differ for serialisation, but the concept remains the same in each of them. 
+
+- PHP Serialisation:
+    
+    - obejct or array is serialised using the 'serialize()' function, where it converts into a byte stream that represents the object's data and structure. The resulting byte stream can include various data types such as strings, arrays, and objects making them unique.
+    
+    - Magic Methods:
+            
+            - __sleep(): called before serialisation
+            
+            - __wakeup(): invoked upon deserialisation
+            
+            - __serialize(): customise the serrialised data by returning an array representing the object's serialised form
+            
+            - __unserialize(): restores the serialized data to its original form
+            
+- Python Serialisation:
+
+    - Python uses 'Pickle' to serialise and deserialise objects. This module converts a Python object into a byte stream (and vice versa) which enables it to be saved to a file or transmitted over a network. A representation of how python serialises and deserialises objects is given below:
+    
+    import pickle
+    import base64
+
+    ...
+    serialized_data = request.form['serialized_data']
+    notes_obj = pickle.loads(base64.b64decode(serialized_data))
+    message = "Notes successfully unpickled."
+    ...
+
+    elif request.method == 'POST':
+        if 'pickle' in request.form:
+            content = request.form['note_content']
+            notes_obj.add_note(content)
+            pickled_content = pickle.dumps(notes_obj)
+            serialized_data = base64.b64encode(pickled_content).decode('utf-8')
+            binary_data = ' '.join(f'{x:02x}' for x in pickled_content)
+            message = "Notes pickled successfully."
+            
+    - Here, an object of a class 'Notes' is referred as 'notes_obj'. Basically, the class is used for managing a list of notes in this web application to manage the applications state. So, in the process of serialisation, when a user submits a note, the Notes class instance (including all notes) is serialised using 'pickle.dumps()'. This function transforms the Python object into binary format that Python can later turn back into an object during deserialisation. Then, the serialised data is encoded with Base64 because binary data contain bytes that may interfere with communication protocols like HTTP. Then, when unpickling, the base64 string is first decoded back into binary format using 'base64.b64decode()'. Then, finally the function 'pickle.loads()' reconstructs the original Python object from the binary system.
+    
+    - So, the concept here is when a string is entered into the instance of the notes class, it is pickled, converted into binary format, encoded with base64 and added to the content. Then, the unpickling is done by removing the base64 encode, and turning it back to the binary format which is then turned into the original state of the object before serialising.
+    
+- Other Lnaguages:
+
+    - Java: Serializable interface
+    
+    - .NET: System.Text.Json (For Json serialisation) and System.Xml.Serialisation (For XML documents)
+    
+    - Ruby: Marshal Module
+    
+## Identification:
+
+- If we are white-box testing, then analysing the source code might help. Looking for the functions that serialises and deserialises an object can be helpful to see if the user-supplied input is passed directly to these functions.
+
+- If we are black-box testing without any access to the source code, we can analyse the pattern of the server responses and cookies that might indicate the use of serialisation and potetnial vulnerabilites. External obseravations and interactions is a must to test for insecure deserialisation. Certain error messages can indirectly indicate issues with serialisation. We can also check for unexpected behaviour in response to manipulated input which might suggest issues with how data is deserialised. Another great way is to examine cookies. Cookies are often used to store serialised data in web applications. So, we could look for cookie values that might look like base64 encoded which can be then decoded and the serialised objects or data structures can be manipualted to check for vulnerabilities.
+
+## Exploitation - Object Injection:
+
+- Pu it simply, serialisation and deserialisation means encrypting and decrypting objects state. So, if there is an insecure deserialisation done by the programmer, we can exploit it by manipulating the serialised data to execute arbitrary code of our own. Suppose a PHP web application is vulnerable to deserialisation. From source code analysis, or considering if the framework is open source, we can identify the vulnerability present. It is possible to manipulate the properties of an object by crafting our own serialised string that should contain the desried property value being using by the application. So, by preparing the payload and getting the serialised base64 encoded string will be useful to manipualte the web application to decode it, and execute our desired intentions.
+
+## Automation Scripts:
+
+- PHP Gadget Chain (PHPGGC):
+
+    - It is a primary tool for generating gadget chains used in PHP object injection attacks. It is specifically tailored to exploit vulnerabilites related to PHP object serialisation and deserialissation. 
+    
+- Functionality:
+
+    - Gadget Chains: PHPGGC has a library of gadget chains for various PHP frameworks and libraries. These chains are sequences of objects and methods designed to exploit specific vulnerabilities.
+    
+    - Payload Generation: Its main purpose is to generate serialised payload that can trigger these vulnerabilites. It helps in creating payloads that demonstrate the impact of insecure deserialisation flaws.
+    
+    - Payload Customization: We can customize the payload to achieve specific outcomes by specifying arguments for the functions or methods involved in the gadget chain.
+    
+        $ php phpggc -l 
+        
+    
+- Yoserial for Java:
+
+    - It is a widely recognized exploitation tool to test security of JAVA applications against serialisation vulnerbailites. It helps in generating paylaods that exploits these vulnerabilites. 
+    
+        $ java -jar ysoserial.jar [payload type] '[command to execute]'
+    
+# SSRF
+
+- Server-Side Resource Forgery is a web application security vulnerability which allows an attacker to force the server to make unauthorised requests to any local or external source on behalf of the web server. Simply, this flaw allows an attacker to interact with internal systems which can potentially lead to data leaks, service disruption, or even remote code execution.
+
+- An SSRF can be implemented when an user-provided data is used to construct a request, such as forming a URL. To execute an SSRF attack, we can manipulate a parameter value within the vulnerable software which maight lead to create or control requests from the software and directing them towards other servers or even the same server. While most SSRF vulnerabilites are present in web applications and other networked software, it can also be present in server software.
+
+## SSRF against a Local Server:
+
+- If the parameter in the url lacks enough and safe filtering, then it loads whatever the parameter is provided from the 'localhost'. This type of flaw usually exists due to how the application handles input from the query parameter or API calls. So, by changing the URL parameter to point to other pages/services that are not meant to be seen by outsiders, then it can present a big risk for the web application. 
+
+## Accessing an Internal Server:
+
+- In web applications, it is common for front-end web applications to interact with back-end internal servers. These servers are usually hosted on non-routable IP addresses, so a normal user could not access them. However, an attacker can exploit a vulnerable web application's input validation to trick the server into requesting internal resources on the same network. So, if we find a content being displayed in a web application with the internal server, such as '10.10.10.10/content.php', then we can simply change the content to be admin or any reosurce that a normal user has not permission to access. Then, the server makes a valid request to the web server, and gives us a legitimate page on the file we requested that are meant to be hidden.
+
+## Blind SSRF:
+
+- If we are blind to the responses of the server, we can use Out-Of_band SSRF to leverage a seperate our-of-band communication channel instead of directly receiving responses form the target server to receive information or control the exploited server. So, by making DNS requests or any other requests to the domain or server an attacker controls, they can interpret if an SSRF vulnerability exists on the system or not. If present, internal IP addresses or the internal network's structure is exposed to the attacker.
+
+## Remidiation:
+
+- Implement strict input validation
+
+- Maintain allowlist of trusted URLs or domains instead of blocklist or filter
+
+- Implement network segmentation to isolate internal resources from external access
+
+- Implement comprehensive logging and monitoring
+
+# File Inclusion and Path Traversal
+
+- These vulnerabilities arise when an application allows external input to change the path for accessing files that are restricted for public view. This flaw primarily occurs from improper handling of file paths and URLs which can allow an attacker to include files which are not intended to be part of the web application, leading to unauthorized access or execution of code. 
+
+## File Inclusion Types:
+
+- Basics of File Inclusion:
+    
+    - A traversal string '../', is used in path traversal attacks to navigate through the directory structure of a file system. It is basically a string to move up one directory level. Relative pathing means locating files based on the current directory. Whereas, absolute pathing means specifying the complete path starting from the root directory. For example, '/var/www/html/foler/file.php' is an absolute path.
+    
+- Remote File Inclusion:
+
+    - RFI is a vulnerability where an attacker can include remote files, often through input manipulation. It occurs in applications that dynamically include external files or scripts. In such cases, an attacker can manipulate the parameters in a request and point it to an external malicious files.
+    
+- Local File Inclusion:
+
+    - LFi occurs when an attacker exploits a vulnerable input filed to access or execute files on the local server. So, an attacker can basically exploit poorly sanitized fields to manipulate file paths to gain access outside of the intended directory. Using a traversal string is a good technique to implement such attacks like 'include.php?page=../../../../etc/passwd'. While it seems like LFI only leads to unauthorised file access, it can also escalte to RCE. If an attacker can upload or inject executable code into a file that is later included or executed by the server, they can attain RCE. One of the common techniques attackers love is log poisoning, where they inject code into log files and then when the web server includes the malicious log file, LFI can lead to RCE.
+    
+## PHP Wrappers:
+
+- They are a part of PHP's functionality which allows users access to various data streams. Wrappers can access and execute code through built-in PHP protocols that may lead to significant security risks if not handled properly. Some of the different string filters for a traget file '.htaccess' in PHP are:
+
+    php://filter/convert.base64-encode/resource=.htaccess
+    
+    php://filter/string.rot123/resource=.htaccess
+    
+    php://filter/string.toupper/resource=.htaccess
+    
+    php://filter/string.tolower/resource=.htaccess
+    
+    php://filter/string.strip_tags/resource=.htaccess
+    
+- Data Wrappers:
+
+    - Data wrapper is another functionality of PHP wrapper which allows inline data embedding. It is used to embed small amounts of data directly into the application code. A common payload for this wrapper looks like this:
+    
+        data:text/plain,<?php phpinfo(); ?>
+        
+## Base Directory Breakouts:
+
+- In modern web applications, safeguards are in place to prevent path traversal attacks. However, they are not always safe. We can bypass insecure input handling if a server is implementing or missing out major practices by using the following payload:
+
+    ?file=/var/www/html/..//..//..//etc/passwd
+    
+- '..//..' are still equally equivalent to '../..'
+
+- Obfuscation:
+
+    - These techniques are used to bypass basic security filters that might be in place. So, by obfuscating the sequences, we can still navigate through the server's filesystem. We could achieve this by encoding the paylaod. So, the traversal string '../' can be written as '%2e%2e%2f'. We could also use double encoding if the application decodes input twice like this '%252e%252e%252f'. Obfuscation can also be achieved by using payloads like '....//', which might help in being undetected by simple string matching or filtering mechanisms. 
+    
+## Log Poisoning:
+
+- It is a technique where an attacker injects executable code into a web server's log file and then uses LFI vulnerability to include and execute this lof file. It can be done in various ways such as crafting an evil user agent, sending payload via URL using netcat, or a referrer header that the server logs. Once the code is in the log file of the web server, the attacker can exploit the vulnerability to include it as a standard server file. This causes the server to execute the malicious code contained in the log file which can lead to RCE.
+
+## LFI2RCE - Wrappers:
+
+- PHP wrappers are not only used to read the files but aldo for code execution. If we take the base64 filter as an example, it can allow an attacker to execute arbitrary code on the server using a base64-encoded payload. For example:
+
+        <?php system(_$GET['cmd']); echo 'Hello World'; ?>
+  
+  When this payload is encoded to base 64 and then included in the PHP wrapper, we could get a code execution on the web page. The final payload would look like 'php://filter/convert.base64-decode/resource=data://plain/text, [base64 encoded PHP snnipet]'.
+  
+## Mitigations:
+
+- Ensuring all user inputs are properly validated and sanitized.
+
+- Implementing allowlisting for file inclusion and access.
+
+- Configuring server settings to disallow remote file inclusion and limit the scripts to access the file system.
     
     
     
