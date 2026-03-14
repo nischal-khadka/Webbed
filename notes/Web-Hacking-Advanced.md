@@ -755,35 +755,35 @@
     
     2. External Entities are similar to internal ones, but their contents are referenced from outside the XML document, such as seperate file or URL. This is the thing we are after to exploit XXE. So, if the XML parser is configured to resolve to external entities, we can use it.
     
-        <!DOCTYPE note [
-        
-        <!ENTITY ext SYSTEM "http://example.com/external.dtd">
-        
-        ]>
-        
-        <note>
-        
-            <info>&ext;</info>
+            <!DOCTYPE note [
             
-        </note>
+            <!ENTITY ext SYSTEM "http://example.com/external.dtd">
+            
+            ]>
+            
+            <note>
+            
+                <info>&ext;</info>
+                
+            </note>
     
     Here, '&ext;' pulls content from the specified URL which could be dangerous if the URL is controlled by an attacker.
     
     3. Parameter Entities are special types used within DTDs to define reusable structures or to include external DTD subsets. They are mainly used for maintaining large-scale XML applications.
     
-        <!DOCTYPE note [
-        
-        <!ENTITY % common "CDATA">
-        
-        <!ENTITY name (%common;)>
-        
-        ]>
-        
-        <note>
-        
-            <name>Nischal Khadka</name>
+            <!DOCTYPE note [
             
-        </note>
+            <!ENTITY % common "CDATA">
+            
+            <!ENTITY name (%common;)>
+            
+            ]>
+            
+            <note>
+            
+                <name>Nischal Khadka</name>
+                
+            </note>
     
     Here, '%common;' is used within the DTD to define the type of data that the 'name' element should have.
        
